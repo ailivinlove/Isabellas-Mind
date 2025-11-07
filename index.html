@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Imagi-World 2.0 — Complete 62 Reasoning Types</title>
+<title>Imagi-World 2.0 — Complete 62 Reasoning Types with Cross-Type Matching</title>
 <style>
   :root{
     --bg:#0b132b;--panel:#1c2541;--ink:#e0e6f3;--accent:#5bc0be;--warn:#ff6b6b;--ok:#2ecc71;--muted:#94a3b8
@@ -45,12 +45,16 @@
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.92rem}
   .timer-bar{height:6px;background:#223;border-radius:3px;margin:10px 0;position:relative;overflow:hidden}
   .timer-progress{height:100%;background:var(--accent);width:100%;transition:width linear}
+  .match-indicator{display:inline-block;margin-left:10px;padding:2px 6px;border-radius:4px;font-size:0.8rem;font-weight:bold}
+  .match-indicator.cross-type{background:#ff6b6b;color:white}
+  .match-indicator.same-type{background:#5bc0be;color:#062025}
+  .match-indicator.structural{background:#9b59b6;color:white}
 </style>
 </head>
 <body>
   <header>
     <h1>Imagi-World 2.0 · Complete 62 Reasoning Types</h1>
-    <p class="mono">Novel premises generated across all 62 logical reasoning patterns. N-back matching based on logical structure.</p>
+    <p class="mono">Cross-type structural matching enabled. N-back matches work across all 62 logic types based on structural equivalence.</p>
   </header>
   <div class="wrap">
     <div class="grid">
@@ -72,14 +76,24 @@
           <input id="premisesNum" type="number" min="1" max="5" step="1" value="1" />
         </div>
 
-        <label for="trials">Trials per Session <span id="trialsV">30</span></label>
+        <label for="trials">Trials per Session <span id="trialsV">10</span></label>
         <div class="row">
-          <input id="trials" type="range" min="5" max="100" step="1" value="30" />
-          <input id="trialsNum" type="number" min="5" max="1000" step="1" value="30" />
+          <input id="trials" type="range" min="5" max="100" step="1" value="10" />
+          <input id="trialsNum" type="number" min="5" max="1000" step="1" value="10" />
         </div>
 
-        <label for="matchRate">Target Match Rate % <span id="matchRateV">25</span></label>
-        <input id="matchRate" type="range" min="10" max="50" step="5" value="25" />
+        <label for="matchRate">Target Match Rate % <span id="matchRateV">50</span></label>
+        <input id="matchRate" type="range" min="10" max="100" step="10" value="50" />
+
+        <label for="crossTypeMatching">
+          <input type="checkbox" id="crossTypeMatching" checked />
+          Enable Cross-Type Structural Matching
+        </label>
+
+        <label for="testWalkthrough">
+          <input type="checkbox" id="testWalkthrough" />
+          Use 10-Trial Walkthrough Test
+        </label>
 
         <div class="row" style="margin-top:16px">
           <button id="start" class="btn" data-start onclick="runSessionSafe()">START</button>
@@ -130,20 +144,37 @@
           <div class="stat"><div>Misses</div><div class="kpi" id="kMisses">0</div></div>
           <div class="stat"><div>Omissions</div><div class="kpi" id="kOmit">0</div></div>
         </div>
+        <div id="structureInfo" class="mono" style="margin-top:10px;padding:10px;background:#0d1736;border-radius:8px;font-size:0.9rem;min-height:3em;"></div>
       </section>
     </div>
 
     <section class="card pad">
       <details open>
-        <summary><strong>How N-Back Logical Matching Works</strong></summary>
+        <summary><strong>Cross-Type Structural Matching</strong></summary>
         <div class="pad">
-          <p>Each trial presents one or more premises based on the 62 reasoning types. An n-back match occurs when the <strong>logical structure</strong> of the current trial matches the structure from n trials ago, NOT when premises are repeated.</p>
+          <p><strong>NEW!</strong> N-back matches now work across different logic types based on structural equivalence:</p>
           <ul>
-            <li><strong>Novel premises only:</strong> Every premise is completely unique - never repeated</li>
-            <li><strong>Logical matching:</strong> Matches are based on reasoning patterns (e.g., modus ponens, contraposition)</li>
-            <li><strong>62 reasoning types:</strong> Including circularity, modus ponens, tollens, syllogisms, bijections, etc.</li>
-            <li><strong>Customizable:</strong> Adjust trial time and premises per trial for difficulty</li>
+            <li><strong>Spatial Inversions:</strong> "A north of B" ↔ "B south of A"</li>
+            <li><strong>Logical Equivalences:</strong> "P→Q" ↔ "¬Q→¬P" (contrapositive)</li>
+            <li><strong>Commutative Properties:</strong> "P∧Q" ↔ "Q∧P"</li>
+            <li><strong>De Morgan's Laws:</strong> "¬(P∧Q)" ↔ "¬P∨¬Q"</li>
+            <li><strong>Multi-relation Patterns:</strong> Complex structural matches across reasoning types</li>
           </ul>
+          <p>This creates more challenging and varied n-back patterns by recognizing logical equivalence across the 62 reasoning types.</p>
+        </div>
+      </details>
+      <details>
+        <summary><strong>10-Trial Walkthrough Test</strong></summary>
+        <div class="pad">
+          <p>Enable the walkthrough test to verify cross-type matching with the illumination theme:</p>
+          <ul>
+            <li>J = Candle (steady light)</li>
+            <li>D = Fireworks (intense light)</li>
+            <li>X = Observation</li>
+            <li>Y = Generalization</li>
+            <li>Z = Anomaly</li>
+          </ul>
+          <p>Expected matches: Trials 3, 4, 6, 7, 9, 10</p>
         </div>
       </details>
       <details>
@@ -156,167 +187,102 @@
   </div>
 
 <script>
-function extractPremiseLines(rawListOrSelector){
-  // Always target only the text span, never the container
-  const SEL = '#premiseDisplay .premise-text, #premise-display .premise-text';
-  let texts;
-  if (Array.isArray(rawListOrSelector)) {
-    texts = rawListOrSelector.slice();
-  } else {
-    const sel = rawListOrSelector || SEL;
-    texts = Array.from(document.querySelectorAll(sel))
-      .map(el => (el.textContent || ''))
-      .filter(Boolean);
-  }
-  // Normalize whitespace and HARD-STRIP any numbering or "Item N" prefixes
-  return texts.map(s => String(s)
-    .replace(/\s+/g, ' ')
-    // remove “Item 1: ”, “Item 1.”, etc.
-    .replace(/^\s*Item\s*\d+\s*[:.)-]\s*/i, '')
-    // remove “1.”, “1)”, “(1)”, “#1”, “1 - ” at start
-    .replace(/^\s*(?:\d+\s*[.)-]\s*|\(\d+\)\s*|#\d+\s*|\d+\.\s*)/, '')
-    // strip any remaining numerals entirely for TTS safety
-    .replace(/\d+/g, '')
-    .trim()
-  ).filter(Boolean);
-}
-
-(function(){
-  const hasTTS = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-  const RATE_KEY = 'speechRate';
-  let rate = loadRate();
-  let lastLines = [];
-  let sessionToken = 0;
-
-  // UI elements
-  let rateSlider, rateNum, rateVal, previewBtn, repeatBtn, infoEl;
-  let bound = false;
-
-  const engine = window.ImagiVoice = window.ImagiVoice || {};
-  engine._lastLines = engine._lastLines || [];
-
-  if(hasTTS && !speechSynthesis.__imagiNoDigits){
-    const originalSpeak = speechSynthesis.speak.bind(speechSynthesis);
-    speechSynthesis.speak = function(utterance){
-      if(utterance && typeof utterance.text === 'string'){
-        utterance.text = stripNumberPrefixes(utterance.text);
-      }
-      return originalSpeak(utterance);
-    };
-    speechSynthesis.__imagiNoDigits = true;
-  }
-
-  function clamp(x,min,max){
-    const value = Number.isFinite(x) ? x : min;
-    return Math.max(min, Math.min(max, value));
-  }
-  function fmt(x){ return (Math.round(x*100)/100).toFixed(2) + '×'; }
-  function saveRate(x){ try{ localStorage.setItem(RATE_KEY, String(x)); }catch(_){}}
-  function loadRate(){
-    try{
-      const stored = parseFloat(localStorage.getItem(RATE_KEY) || '1.0');
-      return Number.isFinite(stored) ? clamp(stored, 0.5, 2.5) : 1.0;
-    }catch(_){
-      return 1.0;
-    }
-  }
-
-  function setRate(x){
-    let next = parseFloat(x);
-    if(!Number.isFinite(next)) next = 1.0;
-    rate = clamp(next, 0.5, 2.5);
-    if(rateSlider) rateSlider.value = rate;
-    if(rateNum)    rateNum.value = rate;
-    if(rateVal)    rateVal.textContent = fmt(rate);
-    saveRate(rate);
-    updateInfo();
-  }
-
-  function stripNumberPrefixes(text){
-    return String(text)
-      .replace(/^\s*Item\s*\d+\s*[:.)-]\s*/i, '')
-      .replace(/^\s*(?:\d+\s*[.)-]\s*|\(\d+\)\s*|#\d+\s*|\d+\.\s*)/, '')
-      .replace(/\d+/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function updateInfo(){
-    if(!infoEl) return;
-    if(!hasTTS){ infoEl.textContent = 'Voice unavailable'; return; }
-    try{
-      const voices = speechSynthesis.getVoices() || [];
-      const v = voices.find(v=>/en-|en_/.test(v.lang)) || voices[0];
-      infoEl.innerHTML = v ? `Voice: <strong>${v.name}</strong> (${v.lang}) • Rate ${fmt(rate)}` : `Voice: default • Rate ${fmt(rate)}`;
-    }catch(_){
-      infoEl.textContent = `Voice: default • Rate ${fmt(rate)}`;
-    }
-  }
-
-  function cancelAll(){
-    if(hasTTS){
-      try{ speechSynthesis.cancel(); }catch(_){ }
-    }
-    lastLines = [];
-    engine._lastLines = [];
-    if(repeatBtn) repeatBtn.disabled = true;
-  }
-
-  function speakLines(lines){
-    if(!hasTTS || !Array.isArray(lines) || !lines.length) return;
-    try{ speechSynthesis.cancel(); }catch(_){ }
-    const normalized = lines.map(line => stripNumberPrefixes(line));
-    lastLines = normalized.slice();
-    engine._lastLines = normalized.slice();
-    const myToken = ++sessionToken;
-    for(const line of normalized){
-      const u = new SpeechSynthesisUtterance(line);
-      u.rate = rate;
-      u.onboundary = ()=>{ if(myToken !== sessionToken) cancelAll(); };
-      speechSynthesis.speak(u);
-    }
-    if(repeatBtn) repeatBtn.disabled = false;
-  }
-
+// Voice engine module - attached to window for global access
+window.ImagiVoice = (function(){
+  const hasTTS = ('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window);
+  let rate = 1.0, bound = false, lastLines = [];
+  const engine = {};
+  
   function speakOnce(text){
     if(!hasTTS) return;
-    try{ speechSynthesis.cancel(); }catch(_){ }
-    const myToken = ++sessionToken;
-    const spoken = stripNumberPrefixes(text);
-    lastLines = [spoken];
-    engine._lastLines = [spoken];
-    const u = new SpeechSynthesisUtterance(spoken);
+    console.log('[Voice] Speaking once:', text);
+    try { speechSynthesis.cancel(); }catch(e){}
+    const u = new SpeechSynthesisUtterance(text);
     u.rate = rate;
-    u.onboundary = ()=>{ if(myToken !== sessionToken) cancelAll(); };
     speechSynthesis.speak(u);
-    if(repeatBtn) repeatBtn.disabled = false;
   }
-
+  
+  function speakLines(lines){
+    if(!hasTTS || !Array.isArray(lines) || !lines.length) return;
+    console.log('[Voice] Speaking lines:', lines);
+    try { speechSynthesis.cancel(); }catch(e){}
+    lastLines = lines.slice();
+    engine._lastLines = lines.slice();
+    const cleaned = lines.map(line => {
+      // Strip number prefixes if present
+      return line.replace(/^\d+\.\s*/, '').trim();
+    });
+    cleaned.forEach(t => {
+      const u = new SpeechSynthesisUtterance(t);
+      u.rate = rate;
+      speechSynthesis.speak(u);
+    });
+  }
+  
+  function cancelAll(){
+    if(!hasTTS) return;
+    try { speechSynthesis.cancel(); }catch(e){}
+  }
+  
+  function setRate(val){
+    rate = parseFloat(val) || 1;
+    const rateSlider = document.getElementById('speechRate');
+    const rateNum = document.getElementById('speechRateNum');
+    const rateVal = document.getElementById('speechRateVal');
+    if(rateSlider && rateSlider.value != rate) rateSlider.value = rate;
+    if(rateNum && rateNum.value != rate) rateNum.value = rate;
+    if(rateVal) rateVal.textContent = rate.toFixed(2) + '×';
+  }
+  
+  function updateInfo(){
+    const infoEl = document.getElementById('voiceInfo');
+    if(!infoEl) return;
+    if(!hasTTS){
+      infoEl.textContent = 'Text-to-speech not available in browser';
+      infoEl.style.color = '#ef4444';
+      return;
+    }
+    try{
+      const voices = speechSynthesis.getVoices();
+      if(voices && voices.length > 0){
+        infoEl.textContent = `${voices.length} voice(s) available`;
+        infoEl.style.color = '#10b981';
+      } else {
+        infoEl.textContent = 'Waiting for voices to load…';
+        infoEl.style.color = '#fbbf24';
+      }
+    }catch(e){
+      infoEl.textContent = 'Voice system error';
+      infoEl.style.color = '#ef4444';
+    }
+  }
+  
   function bindUI(){
-    rateSlider = document.getElementById('speechRate');
-    rateNum    = document.getElementById('speechRateNum');
-    rateVal    = document.getElementById('speechRateVal');
-    previewBtn = document.getElementById('previewBtn');
-    repeatBtn  = document.getElementById('repeatBtn');
-    infoEl     = document.getElementById('voiceInfo');
-
+    const rateSlider = document.getElementById('speechRate');
+    const rateNum = document.getElementById('speechRateNum');
+    const previewBtn = document.getElementById('previewBtn');
+    const repeatBtn = document.getElementById('repeatBtn');
+    const infoEl = document.getElementById('voiceInfo');
+    
     setRate(rate);
     if(!hasTTS){
       if(previewBtn) previewBtn.disabled = true;
-      if(repeatBtn)  repeatBtn.disabled = true;
+      if(repeatBtn) repeatBtn.disabled = true;
       updateInfo();
       return;
     }
-
+    
     if(typeof speechSynthesis !== 'undefined'){
       speechSynthesis.onvoiceschanged = updateInfo;
+      // Load voices immediately if available
+      updateInfo();
     }
-
+    
     if(!bound){
-      if(rateSlider) rateSlider.addEventListener('input', e=> setRate(e.target.value));
-      if(rateNum)    rateNum.addEventListener('input',  e=> setRate(e.target.value));
-      if(previewBtn) previewBtn.addEventListener('click', ()=> speakOnce('Imagi World voice preview. Rate ' + rate.toFixed(2)));
-      if(repeatBtn)  repeatBtn.addEventListener('click', ()=> {
+      if(rateSlider) rateSlider.addEventListener('input', e => setRate(e.target.value));
+      if(rateNum) rateNum.addEventListener('input', e => setRate(e.target.value));
+      if(previewBtn) previewBtn.addEventListener('click', () => speakOnce('Imagi World voice preview with cross-type matching. Rate ' + rate.toFixed(2)));
+      if(repeatBtn) repeatBtn.addEventListener('click', () => {
         if(typeof engine.repeat === 'function'){
           engine.repeat();
         }
@@ -324,11 +290,31 @@ function extractPremiseLines(rawListOrSelector){
       bound = true;
     }
   }
-
-  // public API for the app
+  
+  // Extract premise text from DOM elements or array
+  function extractPremiseText(linesOrSelector){
+    if (Array.isArray(linesOrSelector)) {
+      return linesOrSelector.map(line => 
+        typeof line === 'string' ? line.replace(/^\d+\.\s*/, '').trim() : ''
+      ).filter(s => s.length > 0);
+    }
+    
+    // If it's a selector string, query the DOM
+    if (typeof linesOrSelector === 'string') {
+      const elements = document.querySelectorAll(linesOrSelector);
+      return Array.from(elements).map(el => {
+        const text = el.textContent || el.innerText || '';
+        return text.replace(/^\d+\.\s*/, '').trim();
+      }).filter(s => s.length > 0);
+    }
+    
+    return [];
+  }
+  
   engine.init = bindUI;
   engine.cancel = cancelAll;
-  engine.getRate = ()=>rate;
+  engine.getRate = () => rate;
+  engine.hasTTS = hasTTS;
   engine._setLastLines = function(lines){
     if(Array.isArray(lines)){
       lastLines = lines.slice();
@@ -339,29 +325,27 @@ function extractPremiseLines(rawListOrSelector){
     }
   };
   engine.speakPremises = function(linesOrSelector){
-    const lines = Array.isArray(linesOrSelector)
-      ? linesOrSelector
-      : extractPremiseLines(linesOrSelector);
+    const lines = extractPremiseText(linesOrSelector);
+    console.log('[Voice] speakPremises called with:', linesOrSelector, 'extracted:', lines);
     if(lines.length) speakLines(lines);
   };
   engine.speakPremiseList = function(linesOrSelector){
-    const lines = Array.isArray(linesOrSelector)
-      ? linesOrSelector
-      : extractPremiseLines(linesOrSelector);
+    const lines = extractPremiseText(linesOrSelector);
+    console.log('[Voice] speakPremiseList called with:', linesOrSelector, 'extracted:', lines);
     if(lines.length) speakLines(lines);
   };
   engine.repeat = function(){
     if(lastLines.length) speakLines(lastLines);
   };
   engine.speakOnce = speakOnce;
-
-  // init on DOM ready
+  
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindUI);
   else bindUI();
+  
+  return engine;
 })();
-</script>
 
-<script>
+// Main game logic with cross-type structural matching
 (function(){
   // Core utilities
   const $ = sel => document.querySelector(sel);
@@ -382,7 +366,22 @@ function extractPremiseLines(rawListOrSelector){
   const usedPremises = new Set();
   let letterIndex = 0;
 
-  function getNextLetters(count) {
+  // 10-Trial Walkthrough mapping
+  const walkthroughLetterMap = {
+    'J': 'Candle',
+    'D': 'Fireworks', 
+    'X': 'Observation',
+    'Y': 'Generalization',
+    'Z': 'Anomaly'
+  };
+
+  function getNextLetters(count, useWalkthrough = false) {
+    if (useWalkthrough) {
+      // Use specific letters for walkthrough test
+      const walkthroughLetters = Object.keys(walkthroughLetterMap);
+      return sample(walkthroughLetters, count);
+    }
+    
     const result = [];
     for(let i = 0; i < count; i++) {
       result.push(letters[letterIndex % 26]);
@@ -399,2507 +398,1055 @@ function extractPremiseLines(rawListOrSelector){
   const NOT_VARIANTS = ['not', 'never', 'fails to be', 'is false'];
   const IMPLIES_VARIANTS = ['implies', 'leads to', 'results in', 'causes', 'entails'];
 
-  // Relation types for spatial/hierarchical reasoning
+  // Relation types
   const ABOVE_RELATIONS = ['is above', 'is higher than', 'supersedes', 'dominates'];
   const BELOW_RELATIONS = ['is below', 'is lower than', 'is subordinate to', 'follows'];
   const BESIDE_RELATIONS = ['is beside', 'is adjacent to', 'is parallel to', 'aligns with'];
-  
-  // All 62 reasoning type generators
+
+  // Complete set of all 62 reasoning type generators
   const reasoningGenerators = {
-     // Type 1: Circularity via drift
-     1: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is north of ${B}; some ${C} is east of ${A}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is north of ${B}; ${A} is east of some ${C}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is north of ${B}; some ${C} is north-east of ${A}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is east of ${B}; some ${C} is north of ${A}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is north of ${B}; ${A} is north-east of some ${C}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is east of ${B}; ${A} is north of some ${C}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `${B} is north of ${A}; some ${C} is north of ${B}; some ${C} is east of ${A} and returns to ${A}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const implies = choice(IMPLIES_VARIANTS);
-           return `${A} ${implies} ${B}; ${B} ${implies} some ${C}; some ${C} ${implies} ${A}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `Support above Claim; some Filtered-Support above Support; that Filtered-Support analogue of Claim`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `Guideline above Policy; some Precedent-Slice above Guideline; Policy analogue of that Slice`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'circularity_drift',
-         structure: 'A→B→∃C→A',
-         anchors: ['claim', 'support', 'filtered support'],
-         transforms: ['existential generalization', 'selective instantiation', 'loop detection'],
-         why_it_works: 'Quantifier drift enables self-support by allowing selective instantiation that drifts back to the original claim, creating hidden circular dependency',
-         historical_context: 'Gödel\'s incompleteness theorems, fallacy of composition in argumentation theory',
-         n_back_cues: ['drifting existential bridge', 'quantifier shift return', 'selective rebound'],
-         ascii_diagram: 'A ──→ B ──→ ∃C\n↑           │\n└───────────┘\n(existential drift)',
-         formal_logic: '∀x(A(x)→B(x))∧∀x(B(x)→∃y(C(y)∧R(x,y)))∧∀x∃y(C(y)∧R(x,y)→A(x))',
-         truth_table: 'A B C | (A→B) | (B→∃C) | (∃C→A) | Circular?\nT T T | T     | T       | T       | Yes\nT T F | T     | T       | T       | Yes\nT F T | F     | T       | T       | No\nT F F | F     | F       | T       | No'
-       };
-     },
-
-     // Type 2: Modus ponens with decoy
-     2: () => {
-       const variants = [
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `If ${D} then ${E}; either ${F} or ${D}; ${F} is false`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `${D} holds unless ${F}; if ${D} then ${E}; ${F} is absent`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `If ${F} then not ${D}; if not ${F} then ${D}; ${F} does not hold; if ${D} then ${E}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${ifWord} ${D} ${thenWord} ${E}; either ${F} ${orWord} ${D}; ${F} is ${notWord}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `If Smoke then Sprinklers; either Test-Mode or Smoke; Test-Mode off`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `Enzyme-Active unless Inhibitor; if Enzyme-Active then Reaction-Runs; no Inhibitor`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `If Fire-Override then no Keycard-Valid; if not Fire-Override then Keycard-Valid; Fire-Override absent; if Keycard-Valid then Door-Opens`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `If Alarm then Evacuate; either Drill or Alarm; Drill is not active`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `System online unless Failure; if System online then Process runs; no Failure`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `If Override then no Standard; if not Override then Standard; Override absent; if Standard then Execute`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'modus_ponens_decoy',
-         structure: '(D→E)∧(F∨D)∧¬F',
-         anchors: ['trigger', 'outcome', 'decoy'],
-         transforms: ['disjunctive syllogism eliminates decoy', 'modus ponens applies conditional'],
-         why_it_works: 'Decoy disjunct eliminated by negation, forcing disjunction to resolve to trigger, which then fires the conditional',
-         historical_context: 'Aristotle\'s square of opposition, Stoic logic of conditionals, case analysis',
-         n_back_cues: ['decoy elimination triggers outcome', 'two-step elimination then application'],
-         ascii_diagram: '(F ∨ D) ∧ ¬F\n    ↓ (disjunctive syllogism)\n    D\n    ↓ (modus ponens)\n(D → E) → E',
-         formal_logic: '(D → E) ∧ (F ∨ D) ∧ ¬F ⊨ E',
-         truth_table: 'D E F | (D→E) | (F∨D) | ¬F | Conclusion\nT T T | T     | T     | F  | Invalid\nT T F | T     | T     | T  | E = T ✓\nT F T | F     | T     | F  | Invalid\nT F F | F     | T     | T  | Invalid\nF T T | T     | T     | F  | Invalid\nF T F | T     | F     | T  | Invalid\nF F T | T     | T     | F  | Invalid\nF F F | T     | F     | T  | Invalid'
-       };
-     },
-
-     // Type 3: Syllogism variant
-     3: () => {
-       const variants = [
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `All ${G} are ${H}; all ${H} are ${I}; therefore all ${G} are ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `Every ${G} has property ${H}; every ${H} has property ${I}; therefore every ${G} has property ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `No ${G} lacks ${H}; no ${H} lacks ${I}; therefore no ${G} lacks ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `Any ${G} is a ${H}; any ${H} is an ${I}; therefore any ${G} is an ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `All members of ${G} belong to ${H}; all members of ${H} belong to ${I}; therefore all members of ${G} belong to ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `Everything that is ${G} is also ${H}; everything that is ${H} is also ${I}; therefore everything that is ${G} is also ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `If something is ${G} then it is ${H}; if something is ${H} then it is ${I}; therefore if something is ${G} then it is ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `All ${G} satisfy ${H}; all ${H} satisfy ${I}; therefore all ${G} satisfy ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `No ${G} exists without being ${H}; no ${H} exists without being ${I}; therefore no ${G} exists without being ${I}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `The set of ${G} is subset of ${H}; the set of ${H} is subset of ${I}; therefore the set of ${G} is subset of ${I}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'syllogism_transitive',
-         structure: '∀G→H∧∀H→I⇒∀G→I',
-         anchors: ['major term', 'middle term', 'minor term'],
-         transforms: ['universal instantiation', 'transitive chaining', 'universal generalization'],
-         why_it_works: 'If every G is H and every H is I, then by transitivity every G must be I',
-         historical_context: 'Aristotelian syllogisms, Barbara mood in traditional logic',
-         n_back_cues: ['all-all-all chain', 'subset inheritance', 'transitive property'],
-         ascii_diagram: '∀G ⊆ H\n    ↓\n∀H ⊆ I\n    ↓\n∀G ⊆ I',
-         formal_logic: '∀x(G(x)→H(x))∧∀x(H(x)→I(x))⇒∀x(G(x)→I(x))',
-         truth_table: 'G H I | ∀(G→H) | ∀(H→I) | ∀(G→I)\nT T T | T       | T       | T\nT T F | T       | F       | F\nT F T | F       | T       | F\nT F F | F       | T       | F\nF T T | T       | T       | T\nF T F | T       | F       | T\nF F T | T       | T       | T\nF F F | T       | T       | T'
-       };
-     },
-
-     // Type 4: Existential generalization blocked
-     4: () => {
-       const variants = [
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `Some ${J} are ${K}; but not all ${J} are ${K}; existence without universality`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `At least one ${J} has property ${K}; however, not every ${J} has property ${K}`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `There exists a ${J} that is ${K}; yet it is not the case that all ${J} are ${K}`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `Some members of ${J} belong to ${K}; but the set is not fully contained`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `An instance of ${J} exhibits ${K}; however, not all instances do`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `There is a ${J} that satisfies ${K}; but not universally true for ${J}`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `Partial membership: some ${J} in ${K}, but not complete inclusion`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `Existential witness exists for ${J} and ${K}; universal quantification fails`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `Some ${J} qualify as ${K}; yet not all ${J} qualify`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           return `There are ${J} that are ${K}; but the relationship is not universal`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'existential_blocked',
-         structure: '∃J∧K∧¬∀J→K',
-         anchors: ['existential witness', 'partial relationship', 'universal blocker'],
-         transforms: ['existential instantiation', 'universal generalization attempt', 'contradiction detection'],
-         why_it_works: 'Existential quantification allows partial relationships that cannot be universally generalized',
-         historical_context: 'Aristotelian particular vs universal propositions, modern predicate logic',
-         n_back_cues: ['some but not all', 'partial inclusion', 'universal failure'],
-         ascii_diagram: '∃x(J(x)∧K(x))\n    ∧\n¬∀x(J(x)→K(x))',
-         formal_logic: '∃x(J(x)∧K(x))∧¬∀x(J(x)→K(x))',
-         truth_table: 'J K | ∃(J∧K) | ∀(J→K) | Blocked?\nT T | T       | T       | No\nT F | T       | F       | Yes\nF T | F       | T       | No\nF F | F       | T       | No'
-       };
-     },
-
-     // Type 5: Two premises both needed
-     5: () => {
-       const variants = [
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `If ${L} and ${M} then ${N}; ${L} holds; ${M} holds; therefore ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `Both ${L} and ${M} are required for ${N}; ${L} is present; ${M} is present; thus ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `${N} follows only if ${L} and ${M} both occur; ${L} occurs; ${M} occurs; therefore ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `The conjunction of ${L} and ${M} implies ${N}; ${L} is true; ${M} is true; hence ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `Only when ${L} and ${M} are both satisfied does ${N} follow; ${L} is satisfied; ${M} is satisfied; therefore ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `If ${L} holds and ${M} holds then ${N} must be; ${L} holds; ${M} holds; so ${N} must be`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `The presence of both ${L} and ${M} guarantees ${N}; ${L} is present; ${M} is present; therefore ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `${N} requires the combination of ${L} and ${M}; ${L} is available; ${M} is available; thus ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `When ${L} and ${M} coincide, ${N} results; ${L} and ${M} coincide; therefore ${N}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           return `The joint condition of ${L} and ${M} leads to ${N}; ${L} is met; ${M} is met; hence ${N}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'conjunction_modus_ponens',
-         structure: '((L∧M)→N)∧L∧M⇒N',
-         anchors: ['antecedent conjunction', 'individual conditions', 'consequent'],
-         transforms: ['conjunctive premise verification', 'modus ponens application'],
-         why_it_works: 'Both conjuncts in the antecedent must be satisfied to trigger the consequent via modus ponens',
-         historical_context: 'Aristotelian logic of multiple conditions, modern conjunctive implication',
-         n_back_cues: ['both conditions required', 'conjunctive trigger', 'joint sufficiency'],
-         ascii_diagram: '(L ∧ M) → N\n    ∧\n  L ∧ M\n    ↓\n     N',
-         formal_logic: '((L∧M)→N)∧L∧M⇒N',
-         truth_table: 'L M N | ((L∧M)→N) | L∧M | Conclusion\nT T T | T          | T   | N = T ✓\nT T F | F          | T   | Invalid\nT F T | T          | F   | Invalid\nT F F | T          | F   | Invalid\nF T T | T          | F   | Invalid\nF F T | T          | F   | Invalid\nF F F | T          | F   | Invalid'
-       };
-     },
-
-    // Type 6: Modus tollens
-    6: () => {
-      const [P, Q] = getNextLetters(2);
-      const ifWord = choice(IF_VARIANTS);
-      const thenWord = choice(THEN_VARIANTS);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `${ifWord} ${P} ${thenWord} ${Q}; ${Q} is ${notWord}; therefore ${P} is ${notWord}`;
+    // Type 1: Circularity via drift
+    1: () => {
+      const variants = [
+        () => {
+          const [A, B, C] = getNextLetters(3, state && state.useWalkthrough);
+          return `${B} is north of ${A}; some ${C} is north of ${B}; some ${C} is east of ${A}`;
+        },
+        () => {
+          const [A, B, C] = getNextLetters(3, state && state.useWalkthrough);
+          return `${B} is north of ${A}; some ${C} is north of ${B}; ${A} is east of some ${C}`;
+        },
+        () => {
+          const [A, B, C] = getNextLetters(3, state && state.useWalkthrough);
+          const implies = choice(IMPLIES_VARIANTS);
+          return `${A} ${implies} ${B}; ${B} ${implies} some ${C}; some ${C} ${implies} ${A}`;
+        }
+      ];
+      const premise = choice(variants)();
       return {
         premise,
-        logicType: 'modus_tollens',
-        structure: '(P→Q)∧¬Q⇒¬P'
+        logicType: 'circularity_drift',
+        structure: 'A→B→∃C→A',
+        typeId: 1
       };
     },
 
-    // Type 7: Contraposition
-    7: () => {
-      const [R, S] = getNextLetters(2);
-      const ifWord = choice(IF_VARIANTS);
-      const thenWord = choice(THEN_VARIANTS);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `${ifWord} ${R} ${thenWord} ${S} is equivalent to ${ifWord} ${notWord} ${S} ${thenWord} ${notWord} ${R}`;
+    // Type 2: Modus ponens with decoy
+    2: () => {
+      const variants = [
+        () => {
+          const [D, E, F] = getNextLetters(3);
+          return `If ${D} then ${E}; either ${F} or ${D}; ${F} is false`;
+        },
+        () => {
+          const [D, E, F] = getNextLetters(3);
+          return `${D} holds unless ${F}; if ${D} then ${E}; ${F} is absent`;
+        }
+      ];
+      const premise = choice(variants)();
       return {
         premise,
-        logicType: 'contraposition',
-        structure: '(R→S)≡(¬S→¬R)'
+        logicType: 'modus_ponens_decoy',
+        structure: '(P→Q)∧(R∨P)∧¬R⇒Q',
+        typeId: 2
       };
     },
 
-    // Type 8: Hypothetical syllogism  
-    8: () => {
-      const [T, U, V] = getNextLetters(3);
-      const ifWord = choice(IF_VARIANTS);
-      const thenWord = choice(THEN_VARIANTS);
-      const premise = `${ifWord} ${T} ${thenWord} ${U}; ${ifWord} ${U} ${thenWord} ${V}; therefore ${ifWord} ${T} ${thenWord} ${V}`;
+    // Type 3: Modus tollens with extra premise
+    3: () => {
+      const variants = [
+        () => {
+          const [G, H, I] = getNextLetters(3);
+          return `If ${G} then ${H}; not ${H}; ${I} unrelated to ${G}`;
+        },
+        () => {
+          const [G, H, I] = getNextLetters(3);
+          const ifWord = choice(IF_VARIANTS);
+          const thenWord = choice(THEN_VARIANTS);
+          const notWord = choice(NOT_VARIANTS);
+          return `${ifWord} ${G} ${thenWord} ${H}; ${H} is ${notWord} true; ${I} is independent`;
+        }
+      ];
+      const premise = choice(variants)();
       return {
         premise,
-        logicType: 'hypothetical_syllogism',
-        structure: '(T→U)∧(U→V)⇒(T→V)'
+        logicType: 'modus_tollens_extra',
+        structure: '(P→Q)∧¬Q∧(R⊥P)⇒¬P',
+        typeId: 3
       };
     },
 
-    // Type 9: Disjunctive syllogism
-    9: () => {
-      const [W, X] = getNextLetters(2);
-      const orWord = choice(OR_VARIANTS);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `Either ${W} ${orWord} ${X}; ${W} is ${notWord}; therefore ${X}`;
-      return {
-        premise,
-        logicType: 'disjunctive_syllogism',
-        structure: '(W∨X)∧¬W⇒X'
-      };
-    },
-
-    // Type 10: Constructive dilemma
-    10: () => {
-      const [A, B, C, D] = getNextLetters(4);
-      const ifWord = choice(IF_VARIANTS);
-      const thenWord = choice(THEN_VARIANTS);
-      const orWord = choice(OR_VARIANTS);
-      const premise = `${ifWord} ${A} ${thenWord} ${B}; ${ifWord} ${C} ${thenWord} ${D}; either ${A} ${orWord} ${C}; therefore either ${B} ${orWord} ${D}`;
-      return {
-        premise,
-        logicType: 'constructive_dilemma',
-        structure: '(A→B)∧(C→D)∧(A∨C)⇒(B∨D)'
-      };
-    },
-
-    // Type 11: Biconditional introduction
-    11: () => {
-      const [E, F] = getNextLetters(2);
-      const ifWord = choice(IF_VARIANTS);
-      const thenWord = choice(THEN_VARIANTS);
-      const premise = `${ifWord} ${E} ${thenWord} ${F}; ${ifWord} ${F} ${thenWord} ${E}; therefore ${E} if and only if ${F}`;
-      return {
-        premise,
-        logicType: 'biconditional_intro',
-        structure: '(E→F)∧(F→E)⇒(E↔F)'
-      };
-    },
-
-    // Type 12: Universal instantiation
-    12: () => {
-      const [G, H] = getNextLetters(2);
-      const premise = `All ${G} have property P; ${H} is a ${G}; therefore ${H} has property P`;
-      return {
-        premise,
-        logicType: 'universal_instantiation',
-        structure: '∀G(P)∧H∈G⇒P(H)'
-      };
-    },
-
-    // Type 13: Existential instantiation
-    13: () => {
-      const [I, J] = getNextLetters(2);
-      const premise = `Some ${I} are ${J}; let ${I}₀ be such an ${I}; then ${I}₀ is ${J}`;
-      return {
-        premise,
-        logicType: 'existential_instantiation',
-        structure: '∃I(J)⇒J(I₀)'
-      };
-    },
-
-    // Type 14: Double negation
-    14: () => {
-      const [K] = getNextLetters(1);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `It is ${notWord} the case that ${K} is ${notWord}; therefore ${K} is true`;
-      return {
-        premise,
-        logicType: 'double_negation',
-        structure: '¬¬K⇒K'
-      };
-    },
-
-    // Type 15: De Morgan's Law (AND)
-    15: () => {
-      const [L, M] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const andWord = choice(AND_VARIANTS);
-      const orWord = choice(OR_VARIANTS);
-      const premise = `${notWord} (${L} ${andWord} ${M}) is equivalent to (${notWord} ${L}) ${orWord} (${notWord} ${M})`;
-      return {
-        premise,
-        logicType: 'de_morgan_and',
-        structure: '¬(L∧M)≡(¬L∨¬M)'
-      };
-    },
-
-    // Type 16: De Morgan's Law (OR)
-    16: () => {
-      const [N, O] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const andWord = choice(AND_VARIANTS);
-      const orWord = choice(OR_VARIANTS);
-      const premise = `${notWord} (${N} ${orWord} ${O}) is equivalent to (${notWord} ${N}) ${andWord} (${notWord} ${O})`;
-      return {
-        premise,
-        logicType: 'de_morgan_or',
-        structure: '¬(N∨O)≡(¬N∧¬O)'
-      };
-    },
-
-    // Type 17: Absorption
-    17: () => {
-      const [P, Q] = getNextLetters(2);
-      const ifWord = choice(IF_VARIANTS);
-      const thenWord = choice(THEN_VARIANTS);
-      const andWord = choice(AND_VARIANTS);
-      const premise = `${ifWord} ${P} ${thenWord} ${Q}; therefore ${ifWord} ${P} ${thenWord} (${P} ${andWord} ${Q})`;
-      return {
-        premise,
-        logicType: 'absorption',
-        structure: '(P→Q)⇒(P→(P∧Q))'
-      };
-    },
-
-    // Type 18: Simplification
-    18: () => {
-      const [R, S] = getNextLetters(2);
-      const andWord = choice(AND_VARIANTS);
-      const premise = `${R} ${andWord} ${S}; therefore ${R}`;
-      return {
-        premise,
-        logicType: 'simplification',
-        structure: '(R∧S)⇒R'
-      };
-    },
-
-    // Type 19: Addition
-    19: () => {
-      const [T, U] = getNextLetters(2);
-      const orWord = choice(OR_VARIANTS);
-      const premise = `${T} is true; therefore ${T} ${orWord} ${U}`;
-      return {
-        premise,
-        logicType: 'addition',
-        structure: 'T⇒(T∨U)'
-      };
-    },
-
-    // Type 20: Conjunction
-    20: () => {
-      const [V, W] = getNextLetters(2);
-      const andWord = choice(AND_VARIANTS);
-      const premise = `${V} is true; ${W} is true; therefore ${V} ${andWord} ${W}`;
-      return {
-        premise,
-        logicType: 'conjunction',
-        structure: 'V∧W⇒(V∧W)'
-      };
-    },
-
-     // Type 21: Comparative with quantifiers
-     21: () => {
-       const variants = [
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           return `most ${P} are ${Q}; all ${Q} are ${R}; therefore most ${P} are ${R}`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `the majority of ${A} have property ${B}; every ${B} has property ${C}; therefore the majority of ${A} have property ${C}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `more than half of ${D} are ${E}; all ${E} are ${F}; therefore more than half of ${D} are ${F}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `most ${G} satisfy ${H}; every ${H} satisfies ${I}; therefore most ${G} satisfy ${I}`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           return `the greater part of ${J} are ${K}; all ${K} are ${L}; therefore the greater part of ${J} are ${L}`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           return `most ${M} belong to ${N}; every ${N} belongs to ${O}; therefore most ${M} belong to ${O}`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           return `a majority of ${P} exhibit ${Q}; all that exhibit ${Q} exhibit ${R}; therefore a majority of ${P} exhibit ${R}`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           return `most ${S} are characterized by ${T}; every ${T} is characterized by ${U}; therefore most ${S} are characterized by ${U}`;
-         },
-         () => {
-           const [V, W, X] = getNextLetters(3);
-           return `the bulk of ${V} possess ${W}; all that possess ${W} possess ${X}; therefore the bulk of ${V} possess ${X}`;
-         },
-         () => {
-           const [Y, Z, A] = getNextLetters(3);
-           return `most ${Y} fall under ${Z}; every ${Z} falls under ${A}; therefore most ${Y} fall under ${A}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'comparative_quantifiers',
-         structure: 'Most(P→Q)∧∀(Q→R)⇒Most(P→R)',
-         anchors: ['quantifier monotonicity', 'subset preservation', 'majority inheritance'],
-         transforms: ['quantifier lifting', 'subset chaining', 'majority propagation'],
-         why_it_works: 'If most elements have property Q and all Q have property R, then most elements must have property R due to the monotonicity of quantifiers',
-         historical_context: 'Aristotelian logic with modern quantifier theory, related to monotonicity in modal logic',
-         n_back_cues: ['most-to-all chaining', 'quantifier preservation', 'subset inheritance patterns'],
-         ascii_diagram: 'Most(P→Q)\n     ↓\n  ∀(Q→R)\n     ↓\nMost(P→R)',
-         formal_logic: '⊨ Most(P→Q)∧∀x(Q(x)→R(x))⇒Most(P→R)',
-         truth_table: 'P | Q | R | P→Q | Q→R | Most(P→Q) | ∀(Q→R) | Most(P→R)\nT | T | T | T   | T   | T          | T       | T\nT | T | F | T   | F   | T          | F       | F\nT | F | T | F   | T   | F          | T       | F\nT | F | F | F   | T   | F          | T       | F\nF | T | T | T   | T   | T          | T       | T\nF | T | F | T   | F   | T          | F       | F\nF | F | T | T   | T   | T          | T       | T\nF | F | F | T   | T   | T          | T       | T'
-       };
-     },
-
-     // Type 22: Percent versus number integrity
-     22: () => {
-       const variants = [
-         () => {
-           const [S, A, B] = getNextLetters(3);
-           return `higher percent ${S} in group ${A}; group ${B} much larger; no conclusion about total ${S}`;
-         },
-         () => {
-           const [T, C, D] = getNextLetters(3);
-           return `group ${C} has higher rate of ${T}; group ${D} has many more members; cannot infer which has more ${T}`;
-         },
-         () => {
-           const [U, E, F] = getNextLetters(3);
-           return `percentage of ${U} higher in ${E}; ${F} has far larger population; no claim about absolute numbers`;
-         },
-         () => {
-           const [V, G, H] = getNextLetters(3);
-           return `${G} shows higher proportion of ${V}; ${H} is much bigger; totals undetermined`;
-         },
-         () => {
-           const [W, I, J] = getNextLetters(3);
-           return `rate of ${W} greater in ${I}; ${J} has vastly more cases; no conclusion on counts`;
-         },
-         () => {
-           const [X, K, L] = getNextLetters(3);
-           return `higher percentage ${X} in ${K}; ${L} much larger group; absolute numbers unknown`;
-         },
-         () => {
-           const [Y, M, N] = getNextLetters(3);
-           return `${M} has higher ${Y} rate; ${N} has many more instances; cannot compare totals`;
-         },
-         () => {
-           const [Z, O, P] = getNextLetters(3);
-           return `proportion of ${Z} higher in ${O}; ${P} far larger; no inference about sums`;
-         },
-         () => {
-           const [A, Q, R] = getNextLetters(3);
-           return `higher percent ${A} in ${Q}; ${R} much bigger; totals not determined`;
-         },
-         () => {
-           const [B, S, T] = getNextLetters(3);
-           return `${S} shows greater rate of ${B}; ${T} has vastly more; no conclusion on absolute ${B}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'percent_vs_number_integrity',
-         structure: '(Rate_A > Rate_B)∧(Size_B ≫ Size_A)⇒?(Total_A > Total_B)',
-         anchors: ['rate vs. count distinction', 'denominator effects', 'aggregation fallacies'],
-         transforms: ['rate isolation', 'size weighting', 'total uncertainty'],
-         why_it_works: 'Percentages and absolute numbers are different measures; larger denominators can outweigh higher rates',
-         historical_context: 'Ecological fallacy in statistics, Simpson's paradox precursors',
-         n_back_cues: ['rate-denominator decoupling', 'size-over-rate illusions', 'aggregation paradoxes'],
-         ascii_diagram: 'Rate_A > Rate_B\nSize_B ≫ Size_A\n     ↓\nTotal_A ? Total_B',
-         formal_logic: '¬⊨ (Rate_A > Rate_B)∧(Size_B > Size_A)⇒(Total_A > Total_B)',
-         truth_table: 'Rate_A | Rate_B | Size_A | Size_B | Total_A | Total_B | Rate_A > Rate_B | Size_B > Size_A | Total_A > Total_B\n0.8   | 0.6    | 10    | 100   | 8      | 60     | T       | T       | F\n0.3   | 0.2    | 100   | 10    | 30     | 2      | T       | F       | T\n0.5   | 0.4    | 50    | 50     | 25     | 20     | T       | F       | T\n0.6   | 0.7    | 100   | 10    | 60     | 7      | F       | F       | T'
-       };
-     },
-
-     // Type 23: Simpson Reversal (Aggregation Paradox)
-     23: () => {
-       const variants = [
-         () => {
-           const [A, B, S, T] = getNextLetters(4);
-           return `${A} beats ${B} in stratum ${S}; ${A} beats ${B} in stratum ${T}; ${T} has more cases; overall ${B} beats ${A}`;
-         },
-         () => {
-           const [C, D, U, V] = getNextLetters(4);
-           return `${C} outperforms ${D} within ${U}; ${C} outperforms ${D} within ${V}; ${V} larger group; aggregate shows ${D} outperforming ${C}`;
-         },
-         () => {
-           const [E, F, W, X] = getNextLetters(4);
-           return `${E} superior to ${F} in subgroup ${W}; ${E} superior to ${F} in subgroup ${X}; ${X} has more members; total favors ${F}`;
-         },
-         () => {
-           const [G, H, Y, Z] = getNextLetters(4);
-           return `${G} wins over ${H} in ${Y}; ${G} wins over ${H} in ${Z}; ${Z} much bigger; overall ${H} wins`;
-         },
-         () => {
-           const [I, J, A, B] = getNextLetters(4);
-           return `${I} better than ${J} within ${A}; ${I} better than ${J} within ${B}; ${B} larger stratum; aggregate reverses to ${J} better`;
-         },
-         () => {
-           const [K, L, C, D] = getNextLetters(4);
-           return `${K} exceeds ${L} in ${C}; ${K} exceeds ${L} in ${D}; ${D} has more weight; total shows ${L} exceeding ${K}`;
-         },
-         () => {
-           const [M, N, E, F] = getNextLetters(4);
-           return `${M} outperforms ${N} in ${E}; ${M} outperforms ${N} in ${F}; ${F} larger; overall ${N} outperforms ${M}`;
-         },
-         () => {
-           const [O, P, G, H] = getNextLetters(4);
-           return `${O} beats ${P} within ${G}; ${O} beats ${P} within ${H}; ${H} bigger; aggregate favors ${P}`;
-         },
-         () => {
-           const [Q, R, I, J] = getNextLetters(4);
-           return `${Q} superior to ${R} in ${I}; ${Q} superior to ${R} in ${J}; ${J} has more cases; total reverses`;
-         },
-         () => {
-           const [S, T, K, L] = getNextLetters(4);
-           return `${S} wins against ${T} in ${K}; ${S} wins against ${T} in ${L}; ${L} larger stratum; overall ${T} wins`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'simpson_reversal',
-         structure: '∀strata S: Perf_A_S > Perf_B_S ∧ Weights_S vary ⇒ ?(Perf_A_total > Perf_B_total)',
-         anchors: ['aggregation paradoxes', 'weighted averages', 'compositional effects'],
-         transforms: ['stratum weighting', 'total aggregation', 'reversal detection'],
-         why_it_works: 'When subgroups have different sizes, weighted averages can reverse within-group relationships due to composition effects',
-         historical_context: 'Simpson 1951, ecological fallacy, Berkson bias in epidemiology',
-         n_back_cues: ['stratum reversals', 'weighting paradoxes', 'aggregation illusions'],
-         ascii_diagram: 'Stratum A: A > B\nStratum B: A > B\n───────────────\nOverall:   B > A',
-         formal_logic: '¬⊨ ∀S(Perf_A_S > Perf_B_S) ⇒ Perf_A_total > Perf_B_total',
-         truth_table: 'Stratum | Size | Perf_A | Perf_B | Weighted_A | Weighted_B\nA      | 10   | 0.8   | 0.6   | 8        | 6\nB      | 90   | 0.7   | 0.8   | 63       | 72\nTotal  | 100  | 0.71  | 0.8   | 71       | 78'
-       };
-     },
-
-     // Type 24: Regression to the mean
-     24: () => {
-       const variants = [
-         () => {
-           const [W, M, T, U] = getNextLetters(4);
-           return `extreme ${W} at time ${T}; stable process; ${U} closer to mean ${M}`;
-         },
-         () => {
-           const [X, N, V, W] = getNextLetters(4);
-           return `high ${X} at ${V}; process stable; next measure ${W} lower toward ${N}`;
-         },
-         () => {
-           const [Y, O, X, Y] = getNextLetters(4);
-           return `low ${Y} at ${X}; stable; subsequent ${Y} higher toward ${O}`;
-         },
-         () => {
-           const [Z, P, Z, A] = getNextLetters(4);
-           return `outlier ${Z} at ${Z}; process unchanged; ${A} regresses to ${P}`;
-         },
-         () => {
-           const [B, Q, B, C] = getNextLetters(4);
-           return `peak ${B} at ${B}; stability; ${C} drops toward ${Q}`;
-         },
-         () => {
-           const [D, R, D, E] = getNextLetters(4);
-           return `valley ${D} at ${D}; stable; ${E} rises toward ${R}`;
-         },
-         () => {
-           const [F, S, F, G] = getNextLetters(4);
-           return `extreme ${F} at ${F}; no change; ${G} moderates to ${S}`;
-         },
-         () => {
-           const [H, T, H, I] = getNextLetters(4);
-           return `high score at ${H}; stable ability; next ${I} lower toward ${T}`;
-         },
-         () => {
-           const [J, U, J, K] = getNextLetters(4);
-           return `low performance at ${J}; stable; ${K} improves toward ${U}`;
-         },
-         () => {
-           const [L, V, L, M] = getNextLetters(4);
-           return `outlier ${L} at ${L}; process stable; ${M} regresses to ${V}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'regression_to_mean',
-         structure: 'Extreme(T1)∧Stable_Process⇒Closer_to_Mean(T2)',
-         anchors: ['measurement error', 'random variation', 'central tendency'],
-         transforms: ['error removal', 'baseline reversion', 'extremity moderation'],
-         why_it_works: 'Extreme values often include measurement error or luck; stability removes these, revealing the true mean',
-         historical_context: 'Galton 1886, statistical regression, selection bias in psychology',
-         n_back_cues: ['extremity fading', 'stability reversion', 'mean attraction'],
-         ascii_diagram: 'Extreme ──→ Stable\n    ↓\n  Toward Mean',
-         formal_logic: '⊨ Extreme(T1)∧Stable⇒|T2 - Mean| < |T1 - Mean|',
-         truth_table: 'T1 | Mean | Stable | T2 | |T1-Mean| | |T2-Mean| | Regresses\n10 | 5    | T     | 7  | 5        | 2         | T\n0  | 5    | T     | 3  | 5        | 2         | T\n5  | 5    | T     | 5  | 0        | 0         | F\n10 | 5    | F     | 12 | 5        | 7         | F'
-       };
-     },
-
-     // Type 25: Numeric tightening with minimum and maximum
-     25: () => {
-       const variants = [
-         () => {
-           const [X, Y, Z] = getNextLetters(3);
-           return `exactly three ${X}; at least two ${Y} are ${X}; at most one ${Z} is ${X}; ${Z} excluded`;
-         },
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `exactly four ${A}; at least three ${B} are ${A}; at most one ${C} is ${A}; ${C} excluded`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `exactly two ${D}; at least one ${E} is ${D}; at most zero ${F} is ${D}; ${F} excluded`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `exactly five ${G}; at least four ${H} are ${G}; at most one ${I} is ${G}; ${I} excluded`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           return `exactly three ${J}; at least two ${K} are ${J}; at most zero ${L} is ${J}; ${L} excluded`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           return `exactly four ${M}; at least three ${N} are ${M}; at most one ${O} is ${M}; ${O} excluded`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           return `exactly two ${P}; at least one ${Q} is ${P}; at most zero ${R} is ${P}; ${R} excluded`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           return `exactly five ${S}; at least four ${T} are ${S}; at most one ${U} is ${S}; ${U} excluded`;
-         },
-         () => {
-           const [V, W, X] = getNextLetters(3);
-           return `exactly three ${V}; at least two ${W} are ${V}; at most zero ${X} is ${V}; ${X} excluded`;
-         },
-         () => {
-           const [Y, Z, A] = getNextLetters(3);
-           return `exactly four ${Y}; at least three ${Z} are ${Y}; at most one ${A} is ${Y}; ${A} excluded`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'numeric_tightening',
-         structure: '∃!n(X)∧∃≥k(Y∩X)∧∃≤m(Z∩X)⇒Constraints_on_Z',
-         anchors: ['capacity limits', 'minimum requirements', 'exclusion rules'],
-         transforms: ['pigeonhole principle', 'constraint propagation', 'tightening bounds'],
-         why_it_works: 'Fixed total capacity with minimum allocations and maximum restrictions forces exclusions through arithmetic necessity',
-         historical_context: 'Pigeonhole principle, constraint satisfaction, combinatorial optimization',
-         n_back_cues: ['capacity crunching', 'minimum-maximum conflicts', 'exclusion forcing'],
-         ascii_diagram: 'Total = 3\nMin Y ≥ 2\nMax Z ≤ 1\n   ↓\nZ = 0 or 1',
-         formal_logic: '⊨ (|X|=n)∧(|Y∩X|≥k)∧(|Z∩X|≤m)⇒|Z∩X|≤n-k',
-         truth_table: 'Total X | Min Y in X | Max Z in X | Possible Z in X\n3       | 2          | 1          | 0 or 1\n4       | 3          | 1          | 0 or 1\n2       | 1          | 0          | 0\n5       | 4          | 1          | 0 or 1\n3       | 2          | 0          | 0'
-       };
-     },
-
-     // Type 26: Distribution Bounds in Sequencing
-     26: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           return `${notWord} some ${A} are ${B}; therefore all ${A} are ${notWord} ${B}`;
-         },
-         () => {
-           const [D, E] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `If ${notWord} some ${D} exist that are ${E}, then no ${D} are ${E}`;
-         },
-         () => {
-           const [F, G, H] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           return `${notWord} (${F} and ${G} are ${H}) implies all ${F} are ${notWord} ${H}`;
-         },
-         () => {
-           const [I, J] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `The absence of any ${I} being ${J} means every ${I} is ${notWord} ${J}`;
-         },
-         () => {
-           const [K, L, M] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           return `${notWord} some ${K} map to ${L}; therefore all ${K} map to ${notWord} ${L}`;
-         },
-         () => {
-           const [N, O] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `If no ${N} are ${O}, then all ${N} are ${notWord} ${O}`;
-         },
-         () => {
-           const [P, Q] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `${notWord} some ${P} precede ${Q}; therefore all ${P} ${notWord} precede ${Q}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'distribution_bounds_sequencing',
-         structure: '¬∃x(P(x))⇒∀x(¬P(x))',
-         anchors: ['existential negation', 'universal quantification', 'logical bounds'],
-         transforms: ['polarity flip', 'quantifier swap', 'scope inversion'],
-         why_it_works: 'Existential quantification negated becomes universal with negated predicate',
-         historical_context: 'Aristotelian logic, modern predicate calculus',
-         n_back_cues: ['negation patterns', 'quantifier shifts', 'scope changes'],
-         ascii_diagram: '¬∃x P(x) ≡ ∀x ¬P(x)',
-         formal_logic: '∀x(¬P(x)) ⊨ ¬∃x(P(x))',
-         truth_table: 'P(x) | ¬P(x) | ∃x P | ∀x ¬P\nT    | F      | T     | F\nF    | T      | F     | T'
-       };
-     },
-
-     // Type 27: Must-be-true Diagnostic
-     27: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${A} ${thenWord} ${B}; ${ifWord} ${B} ${thenWord} ${C}; ${A} holds; therefore ${C} must be true`;
-         },
-         () => {
-           const [D, E, F, G] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${D} ${thenWord} ${E}; ${ifWord} ${E} ${thenWord} ${F}; ${ifWord} ${F} ${thenWord} ${G}; ${D} is given; therefore ${G} must hold`;
-         },
-         () => {
-           const [H, I, J] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Chain: ${H} implies ${I}; ${I} implies ${J}; with ${H} true, ${J} cannot be false`;
-         },
-         () => {
-           const [K, L, M, N] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${K} ${thenWord} ${L}; ${ifWord} ${L} ${thenWord} ${M}; ${ifWord} ${M} ${thenWord} ${N}; ${K} is established; therefore ${N} is necessarily true`;
-         },
-         () => {
-           const [O, P, Q] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Given ${O} leads to ${P}; ${P} leads to ${Q}; ${O} being true forces ${Q} to be true`;
-         },
-         () => {
-           const [R, S, T, U] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${R} ${thenWord} ${S}; ${ifWord} ${S} ${thenWord} ${T}; ${ifWord} ${T} ${thenWord} ${U}; ${R} holds; thus ${U} must be true`;
-         },
-         () => {
-           const [V, W, X] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Transitive chain: ${V} → ${W} → ${X}; ${V} true implies ${X} true`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'must_be_true_diagnostic',
-         structure: '(A→B)∧(B→C)∧A⇒C',
-         anchors: ['transitive implication', 'necessary consequence', 'logical entailment'],
-         transforms: ['chain extension', 'premise addition', 'conclusion derivation'],
-         why_it_works: 'If each step in the chain holds and the first premise is true, the conclusion must be true',
-         historical_context: 'Aristotelian syllogisms, mathematical proof chains',
-         n_back_cues: ['implication sequences', 'transitive patterns', 'necessary conclusions'],
-         ascii_diagram: 'A → B → C\n  ↓\n  A ⇒ C',
-         formal_logic: '⊨ ((A→B)∧(B→C)∧A)→C',
-         truth_table: 'A | B | C | A→B | B→C | (A→B)∧(B→C)∧A | Conclusion\nT | T | T | T   | T   | T                   | T\nT | T | F | T   | F   | F                   | F\nT | F | T | F   | T   | F                   | F\nT | F | F | F   | T   | F                   | F\nF | T | T | T   | T   | F                   | T\nF | T | F | T   | F   | F                   | T\nF | F | T | T   | T   | F                   | T\nF | F | F | T   | T   | F                   | T'
-       };
-     },
-
-     // Type 28: Could-be-true Diagnostic
-     28: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${A} ${thenWord} ${B}; ${ifWord} ${B} ${thenWord} ${C}; ${C} could be true if ${A} is true`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Given ${D} implies ${E}; ${E} implies ${F}; ${F} is possible when ${D} holds`;
-         },
-         () => {
-           const [G, H, I, J] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${G} ${thenWord} ${H}; ${ifWord} ${H} ${thenWord} ${I}; ${ifWord} ${I} ${thenWord} ${J}; ${J} could be true`;
-         },
-         () => {
-           const [K, L, M] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Chain allows ${M} to be true: ${K} → ${L} → ${M}`;
-         },
-         () => {
-           const [N, O, P] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${N} ${thenWord} ${O}; ${ifWord} ${O} ${thenWord} ${P}; possibility of ${P} exists`;
-         },
-         () => {
-           const [Q, R, S, T] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${Q} ${thenWord} ${R}; ${ifWord} ${R} ${thenWord} ${S}; ${ifWord} ${S} ${thenWord} ${T}; ${T} could hold`;
-         },
-         () => {
-           const [U, V, W] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `The implication chain permits ${W} to be true when ${U} is true`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'could_be_true_diagnostic',
-         structure: '(A→B)∧(B→C)∧A⇒◇C',
-         anchors: ['possibility analysis', 'conditional chains', 'potential outcomes'],
-         transforms: ['possibility extension', 'modal logic', 'contingency assessment'],
-         why_it_works: 'If the premises allow a conclusion to be true in some cases, it could be true',
-         historical_context: 'Modal logic, possibility semantics',
-         n_back_cues: ['possibility patterns', 'conditional possibilities', 'outcome spaces'],
-         ascii_diagram: 'A → B → C\n  ↓\n  ◇C possible',
-         formal_logic: '⊨ ((A→B)∧(B→C)∧A)→◇C',
-         truth_table: 'A | B | C | A→B | B→C | ◇C\nT | T | T | T   | T   | T\nT | T | F | T   | F   | T\nT | F | T | F   | T   | T\nT | F | F | F   | T   | T\nF | T | T | T   | T   | T\nF | T | F | T   | F   | T\nF | F | T | T   | T   | T\nF | F | F | T   | T   | T'
-       };
-     },
-
-     // Type 29: Must-be-false Diagnostic
-     29: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${A} ${thenWord} ${B}; ${ifWord} ${B} ${thenWord} ${C}; ${notWord} ${A}; therefore ${notWord} ${C}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${D} ${thenWord} ${E}; ${ifWord} ${E} ${thenWord} ${F}; since ${D} is ${notWord}, ${F} must be ${notWord}`;
-         },
-         () => {
-           const [G, H, I, J] = getNextLetters(4);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${G} ${thenWord} ${H}; ${ifWord} ${H} ${thenWord} ${I}; ${ifWord} ${I} ${thenWord} ${J}; ${notWord} ${G} forces ${notWord} ${J}`;
-         },
-         () => {
-           const [K, L, M] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Chain: ${K} → ${L} → ${M}; ${notWord} ${K} implies ${notWord} ${M}`;
-         },
-         () => {
-           const [N, O, P] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${N} ${thenWord} ${O}; ${ifWord} ${O} ${thenWord} ${P}; ${N} is ${notWord}; thus ${P} is ${notWord}`;
-         },
-         () => {
-           const [Q, R, S, T] = getNextLetters(4);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${Q} ${thenWord} ${R}; ${ifWord} ${R} ${thenWord} ${S}; ${ifWord} ${S} ${thenWord} ${T}; ${notWord} ${Q} necessitates ${notWord} ${T}`;
-         },
-         () => {
-           const [U, V, W] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `The implication chain requires ${W} to be ${notWord} when ${U} is ${notWord}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'must_be_false_diagnostic',
-         structure: '(A→B)∧(B→C)∧¬A⇒¬C',
-         anchors: ['necessary falsehood', 'denial propagation', 'contrapositive chains'],
-         transforms: ['negation propagation', 'backward chaining', 'falsity derivation'],
-         why_it_works: 'If the first premise is false and each implication holds, the conclusion must be false',
-         historical_context: 'Modus tollens chains, proof by contradiction',
-         n_back_cues: ['negation chains', 'backward reasoning', 'falsity patterns'],
-         ascii_diagram: '¬A → ¬B → ¬C\n  ↑\n  A ⇒ C',
-         formal_logic: '⊨ ((A→B)∧(B→C)∧¬A)→¬C',
-         truth_table: 'A | B | C | ¬A | A→B | B→C | ¬A∧(A→B)∧(B→C) | ¬C\nT | T | T | F  | T   | T   | F                     | F\nT | T | F | F  | T   | F   | F                     | T\nT | F | T | F  | F   | T   | F                     | F\nT | F | F | F  | F   | T   | F                     | T\nF | T | T | T  | T   | T   | T                     | F\nF | T | F | T  | T   | F   | F                     | T\nF | F | T | T  | T   | T   | T                     | F\nF | F | F | T  | T   | T   | T                     | T'
-       };
-     },
-
-     // Type 30: Necessary Assumption Detection
-     30: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `To conclude ${C}, we must assume ${A}; ${ifWord} ${A} ${thenWord} ${B}; ${ifWord} ${B} ${thenWord} ${C}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${F} requires ${D}; given ${D} implies ${E}; ${E} implies ${F}`;
-         },
-         () => {
-           const [G, H, I, J] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `For ${J} to hold, ${G} is necessary; ${ifWord} ${G} ${thenWord} ${H}; ${ifWord} ${H} ${thenWord} ${I}; ${ifWord} ${I} ${thenWord} ${J}`;
-         },
-         () => {
-           const [K, L, M] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Chain requires ${K}: ${K} → ${L} → ${M}`;
-         },
-         () => {
-           const [N, O, P] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${P} necessitates ${N}; ${ifWord} ${N} ${thenWord} ${O}; ${ifWord} ${O} ${thenWord} ${P}`;
-         },
-         () => {
-           const [Q, R, S, T] = getNextLetters(4);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `To derive ${T}, ${Q} must be assumed; ${ifWord} ${Q} ${thenWord} ${R}; ${ifWord} ${R} ${thenWord} ${S}; ${ifWord} ${S} ${thenWord} ${T}`;
-         },
-         () => {
-           const [U, V, W] = getNextLetters(3);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `The implication chain demands ${U} as a necessary premise for ${W}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'necessary_assumption_detection',
-         structure: 'C⇒∃A((A→B)∧(B→C))',
-         anchors: ['necessary conditions', 'assumption identification', 'backward chaining'],
-         transforms: ['premise necessity', 'chain requirements', 'assumption derivation'],
-         why_it_works: 'To reach a conclusion, certain premises must be true in the implication chain',
-         historical_context: 'Logic of necessary and sufficient conditions',
-         n_back_cues: ['assumption patterns', 'necessary links', 'chain dependencies'],
-         ascii_diagram: 'A → B → C\n  ↑\n  Necessary A',
-         formal_logic: '⊨ C → ∃A((A→B)∧(B→C))',
-         truth_table: 'A | B | C | A→B | B→C | Necessary A\nT | T | T | T   | T   | T\nT | T | F | T   | F   | T\nT | F | T | F   | T   | T\nT | F | F | F   | T   | T\nF | T | T | T   | T   | F\nF | T | F | T   | F   | F\nF | F | T | T   | T   | F\nF | F | F | T   | T   | F'
-       };
-     },
-
-     // Type 31: Reductio ad absurdum
-     31: () => {
-       const variants = [
-         () => {
-           const [A, B] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Suppose ${A}; from ${A} we derive ${B}; but ${B} is absurd; therefore ${notWord} ${A}`;
-         },
-         () => {
-           const [C, D] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Assume ${C} holds; this leads to ${D}; but ${D} is impossible; thus ${notWord} ${C}`;
-         },
-         () => {
-           const [E, F, G] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           return `If we accept ${E}; then ${F} follows; and ${G} follows from ${F}; but ${G} contradicts itself; therefore ${notWord} ${E}`;
-         },
-         () => {
-           const [H, I] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Proof by contradiction: ${H} implies ${I}; ${I} is false; therefore ${notWord} ${H}`;
-         },
-         () => {
-           const [J, K] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Suppose ${notWord} ${J}; this leads to contradiction; therefore ${J}`;
-         },
-         () => {
-           const [L, M, N] = getNextLetters(3);
-           const notWord = choice(NOT_VARIANTS);
-           return `Assume ${L}; derive ${M} and ${notWord} ${M}; absurdity; thus ${notWord} ${L}`;
-         },
-         () => {
-           const [O, P] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Reductio: ${O} → ${P}; ¬${P}; therefore ¬${O}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'reductio_ad_absurdum',
-         structure: '(A→B)∧(B=⊥)⇒¬A',
-         anchors: ['proof by contradiction', 'absurdity derivation', 'indirect proof'],
-         transforms: ['contradiction assumption', 'absurdity elimination', 'negation introduction'],
-         why_it_works: 'If assuming a statement leads to a contradiction, the statement must be false',
-         historical_context: 'Ancient Greek logic, Euclid, mathematical proofs',
-         n_back_cues: ['contradiction patterns', 'absurdity detection', 'indirect reasoning'],
-         ascii_diagram: 'A → B\n  ↓\n  ⊥\n  ↑\n ¬A',
-         formal_logic: '⊨ ((A→B)∧(B=⊥))→¬A',
-         truth_table: 'A | B | A→B | B=⊥ | ¬A\nT | T | T   | F    | F\nT | F | F   | T    | F\nF | T | T   | F    | T\nF | F | T   | T    | T'
-       };
-     },
-
-     // Type 32: Law of excluded middle
-     32: () => {
-       const variants = [
-         () => {
-           const [A] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `Either ${A} ${orWord} ${notWord} ${A}; no third option exists`;
-         },
-         () => {
-           const [B] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${B} is true or ${B} is ${notWord}; tertium non datur`;
-         },
-         () => {
-           const [C] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `For any ${C}, either ${C} holds ${orWord} ${notWord} ${C} holds`;
-         },
-         () => {
-           const [D] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `Bivalence: ${D} is either true ${orWord} false`;
-         },
-         () => {
-           const [E] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `No middle ground: ${E} ${orWord} ${notWord} ${E}`;
-         },
-         () => {
-           const [F] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `Classical logic requires ${F} ∨ ¬${F}`;
-         },
-         () => {
-           const [G] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `Either ${G} is the case ${orWord} it is ${notWord}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'excluded_middle',
-         structure: 'C∨¬C',
-         anchors: ['bivalence', 'tertium non datur', 'classical logic'],
-         transforms: ['truth value dichotomy', 'no middle ground', 'binary valuation'],
-         why_it_works: 'In classical logic, every proposition is either true or false',
-         historical_context: 'Aristotle, principle of bivalence, classical logic foundations',
-         n_back_cues: ['binary choices', 'truth dichotomies', 'no middle options'],
-         ascii_diagram: 'C ∨ ¬C\n  ↓\nNo third',
-         formal_logic: '⊨ C∨¬C',
-         truth_table: 'C | ¬C | C∨¬C\nT | F  | T\nF | T  | T'
-       };
-     },
-
-     // Type 33: Law of non-contradiction
-     33: () => {
-       const variants = [
-         () => {
-           const [A] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${A} ${andWord} ${notWord} ${A} cannot both be true`;
-         },
-         () => {
-           const [B] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `It is impossible for ${B} and ${notWord} ${B} to both hold`;
-         },
-         () => {
-           const [C] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `Contradiction: ${C} ∧ ¬${C} is always false`;
-         },
-         () => {
-           const [D] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `No proposition can be both true and ${notWord} true`;
-         },
-         () => {
-           const [E] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${E} and its negation cannot coexist`;
-         },
-         () => {
-           const [F] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `The principle that ${F} ≠ ¬${F}`;
-         },
-         () => {
-           const [G] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `Consistency requires ¬(${G} ∧ ¬${G})`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'non_contradiction',
-         structure: '¬(D∧¬D)',
-         anchors: ['consistency principle', 'contradiction avoidance', 'logical coherence'],
-         transforms: ['negation incompatibility', 'consistency maintenance', 'paradox prevention'],
-         why_it_works: 'A proposition cannot be both true and false simultaneously',
-         historical_context: 'Aristotle, principle of non-contradiction, logic foundations',
-         n_back_cues: ['contradiction detection', 'consistency checks', 'paradox avoidance'],
-         ascii_diagram: '¬(A ∧ ¬A)\n     ↓\n  Always true',
-         formal_logic: '⊨ ¬(A∧¬A)',
-         truth_table: 'A | ¬A | A∧¬A | ¬(A∧¬A)\nT | F  | F     | T\nF | T  | F     | T'
-       };
-     },
-
-     // Type 34: Identity law
-     34: () => {
-       const variants = [
-         () => {
-           const [A] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${A} ${thenWord} ${A}; self-implication always holds`;
-         },
-         () => {
-           const [B] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${B} implies itself`;
-         },
-         () => {
-           const [C] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `The tautology: ${ifWord} ${C} ${thenWord} ${C}`;
-         },
-         () => {
-           const [D] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${D} → ${D} is always true`;
-         },
-         () => {
-           const [E] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Self-reference: ${ifWord} ${E} ${thenWord} ${E}`;
-         },
-         () => {
-           const [F] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `Identity holds for ${F}`;
-         },
-         () => {
-           const [G] = getNextLetters(1);
-           const ifWord = choice(IF_VARIANTS);
-           const thenWord = choice(THEN_VARIANTS);
-           return `${ifWord} ${G} is true ${thenWord} ${G} is true`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'identity',
-         structure: 'A→A',
-         anchors: ['self-implication', 'tautology', 'reflexive implication'],
-         transforms: ['self-reference', 'identity preservation', 'reflexive logic'],
-         why_it_works: 'Any true statement implies itself',
-         historical_context: 'Basic logical axioms, identity in mathematics',
-         n_back_cues: ['self-similarity', 'identity patterns', 'reflexive structures'],
-         ascii_diagram: 'A → A\n  ↓\nAlways true',
-         formal_logic: '⊨ A→A',
-         truth_table: 'A | A→A\nT | T\nF | T'
-       };
-     },
-
-     // Type 35: Commutative (AND)
-     35: () => {
-       const variants = [
-         () => {
-           const [A, B] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `${A} ${andWord} ${B} is equivalent to ${B} ${andWord} ${A}`;
-         },
-         () => {
-           const [C, D] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `Order doesn't matter: ${C} ∧ ${D} = ${D} ∧ ${C}`;
-         },
-         () => {
-           const [E, F] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `${E} ${andWord} ${F} equals ${F} ${andWord} ${E}`;
-         },
-         () => {
-           const [G, H] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `Conjunction commutes: ${G} ∧ ${H} ≡ ${H} ∧ ${G}`;
-         },
-         () => {
-           const [I, J] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `${I} and ${J} is the same as ${J} and ${I}`;
-         },
-         () => {
-           const [K, L] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `Commutativity of AND: ${K} ∧ ${L} = ${L} ∧ ${K}`;
-         },
-         () => {
-           const [M, N] = getNextLetters(2);
-           const andWord = choice(AND_VARIANTS);
-           return `${M} ${andWord} ${N} ↔ ${N} ${andWord} ${M}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'commutative_and',
-         structure: '(A∧B)≡(B∧A)',
-         anchors: ['order independence', 'symmetric conjunction', 'commutative property'],
-         transforms: ['operand swapping', 'order reversal', 'symmetry application'],
-         why_it_works: 'The order of conjuncts doesn't affect the truth value',
-         historical_context: 'Commutative laws in algebra and logic',
-         n_back_cues: ['order patterns', 'symmetry detection', 'operand swapping'],
-         ascii_diagram: 'A ∧ B\n  ↓\nB ∧ A',
-         formal_logic: '⊨ (A∧B)↔(B∧A)',
-         truth_table: 'A | B | A∧B | B∧A | Equivalent\nT | T | T   | T   | T\nT | F | F   | F   | T\nF | T | F   | F   | T\nF | F | F   | F   | T'
-       };
-     },
-
-     // Type 36: Commutative (OR)
-     36: () => {
-       const variants = [
-         () => {
-           const [A, B] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `${A} ${orWord} ${B} is equivalent to ${B} ${orWord} ${A}`;
-         },
-         () => {
-           const [C, D] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `Disjunction commutes: ${C} ∨ ${D} = ${D} ∨ ${C}`;
-         },
-         () => {
-           const [E, F] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `${E} ${orWord} ${F} equals ${F} ${orWord} ${E}`;
-         },
-         () => {
-           const [G, H] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `OR is commutative: ${G} ∨ ${H} ≡ ${H} ∨ ${G}`;
-         },
-         () => {
-           const [I, J] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `${I} or ${J} is the same as ${J} or ${I}`;
-         },
-         () => {
-           const [K, L] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `Order independence for OR: ${K} ∨ ${L} = ${L} ∨ ${K}`;
-         },
-         () => {
-           const [M, N] = getNextLetters(2);
-           const orWord = choice(OR_VARIANTS);
-           return `${M} ${orWord} ${N} ↔ ${N} ${orWord} ${M}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'commutative_or',
-         structure: '(A∨B)≡(B∨A)',
-         anchors: ['disjunction symmetry', 'order independence', 'commutative disjunction'],
-         transforms: ['disjunct swapping', 'symmetric OR', 'operand reversal'],
-         why_it_works: 'The order of disjuncts doesn't affect the truth value',
-         historical_context: 'Commutative laws in logic and set theory',
-         n_back_cues: ['OR symmetry', 'disjunct patterns', 'order invariance'],
-         ascii_diagram: 'A ∨ B\n  ↓\nB ∨ A',
-         formal_logic: '⊨ (A∨B)↔(B∨A)',
-         truth_table: 'A | B | A∨B | B∨A | Equivalent\nT | T | T   | T   | T\nT | F | T   | T   | T\nF | T | T   | T   | T\nF | F | F   | F   | T'
-       };
-     },
-
-     // Type 37: Associative (AND)
-     37: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `(${A} ${andWord} ${B}) ${andWord} ${C} equals ${A} ${andWord} (${B} ${andWord} ${C})`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `Conjunction associates: (${D} ∧ ${E}) ∧ ${F} = ${D} ∧ (${E} ∧ ${F})`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `Grouping doesn't matter for AND: ${G} ∧ ${H} ∧ ${I}`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `Associativity of conjunction: (${J} ∧ ${K}) ∧ ${L} ≡ ${J} ∧ (${K} ∧ ${L})`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `${M} and ${N} and ${O} can be grouped either way`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `AND is associative: ${P} ∧ (${Q} ∧ ${R}) = (${P} ∧ ${Q}) ∧ ${R}`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           return `(${S} ${andWord} ${T}) ${andWord} ${U} ↔ ${S} ${andWord} (${T} ${andWord} ${U})`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'associative_and',
-         structure: '((A∧B)∧C)≡(A∧(B∧C))',
-         anchors: ['grouping independence', 'conjunction association', 'parentheses neutrality'],
-         transforms: ['grouping changes', 'association shifts', 'bracket movement'],
-         why_it_works: 'The way conjuncts are grouped doesn't affect the truth value',
-         historical_context: 'Associative laws in algebra and logic',
-         n_back_cues: ['grouping patterns', 'association detection', 'bracket invariance'],
-         ascii_diagram: '(A ∧ B) ∧ C\n      ↓\n    A ∧ (B ∧ C)',
-         formal_logic: '⊨ ((A∧B)∧C)↔(A∧(B∧C))',
-         truth_table: 'A | B | C | (A∧B)∧C | A∧(B∧C) | Equivalent\nT | T | T | T       | T       | T\nT | T | F | F       | F       | T\nT | F | T | F       | F       | T\nT | F | F | F       | F       | T\nF | T | T | F       | F       | T\nF | T | F | F       | F       | T\nF | F | T | F       | F       | T\nF | F | F | F       | F       | T'
-       };
-     },
-
-     // Type 38: Associative (OR)
-     38: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `(${A} ${orWord} ${B}) ${orWord} ${C} equals ${A} ${orWord} (${B} ${orWord} ${C})`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `Disjunction associates: (${D} ∨ ${E}) ∨ ${F} = ${D} ∨ (${E} ∨ ${F})`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `OR grouping is flexible: ${G} ∨ ${H} ∨ ${I}`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `Associativity of disjunction: (${J} ∨ ${K}) ∨ ${L} ≡ ${J} ∨ (${K} ∨ ${L})`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `${M} or ${N} or ${O} can be associated either way`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `OR is associative: ${P} ∨ (${Q} ∨ ${R}) = (${P} ∨ ${Q}) ∨ ${R}`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           return `(${S} ${orWord} ${T}) ${orWord} ${U} ↔ ${S} ${orWord} (${T} ${orWord} ${U})`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'associative_or',
-         structure: '((A∨B)∨C)≡(A∨(B∨C))',
-         anchors: ['disjunction grouping', 'OR association', 'bracket neutrality'],
-         transforms: ['disjunct grouping', 'association changes', 'parentheses shifts'],
-         why_it_works: 'The way disjuncts are grouped doesn't affect the truth value',
-         historical_context: 'Associative properties in logic and set theory',
-         n_back_cues: ['OR grouping', 'association patterns', 'bracket invariance'],
-         ascii_diagram: '(A ∨ B) ∨ C\n      ↓\n    A ∨ (B ∨ C)',
-         formal_logic: '⊨ ((A∨B)∨C)↔(A∨(B∨C))',
-         truth_table: 'A | B | C | (A∨B)∨C | A∨(B∨C) | Equivalent\nT | T | T | T       | T       | T\nT | T | F | T       | T       | T\nT | F | T | T       | T       | T\nT | F | F | T       | T       | T\nF | T | T | T       | T       | T\nF | T | F | T       | T       | T\nF | F | T | T       | T       | T\nF | F | F | F       | F       | T'
-       };
-     },
-
-     // Type 39: Distributive (AND over OR)
-     39: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `${A} ${andWord} (${B} ${orWord} ${C}) equals (${A} ${andWord} ${B}) ${orWord} (${A} ${andWord} ${C})`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `AND distributes over OR: ${D} ∧ (${E} ∨ ${F}) = (${D} ∧ ${E}) ∨ (${D} ∧ ${F})`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `Distribution: ${G} ∧ (${H} ∨ ${I}) ≡ (${G} ∧ ${H}) ∨ (${G} ∧ ${I})`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `${J} and (${K} or ${L}) is equivalent to (${J} and ${K}) or (${J} and ${L})`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `Distributive law: ${M} ∧ (${N} ∨ ${O}) = (${M} ∧ ${N}) ∨ (${M} ∧ ${O})`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `AND distributes: ${P} ∧ (${Q} ∨ ${R}) ↔ (${P} ∧ ${Q}) ∨ (${P} ∧ ${R})`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `(${S} ${andWord} ${T}) ${orWord} (${S} ${andWord} ${U}) is the expanded form of ${S} ${andWord} (${T} ${orWord} ${U})`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'distributive_and_or',
-         structure: 'A∧(B∨C)≡(A∧B)∨(A∧C)',
-         anchors: ['distribution over disjunction', 'AND expansion', 'logical multiplication'],
-         transforms: ['distribution application', 'OR factoring', 'conjunction expansion'],
-         why_it_works: 'AND can be distributed across OR like multiplication over addition',
-         historical_context: 'Distributive laws in algebra and Boolean logic',
-         n_back_cues: ['distribution patterns', 'AND-OR expansion', 'factoring detection'],
-         ascii_diagram: 'A ∧ (B ∨ C)\n     ↓\n  (A ∧ B) ∨ (A ∧ C)',
-         formal_logic: '⊨ A∧(B∨C)↔(A∧B)∨(A∧C)',
-         truth_table: 'A | B | C | A∧(B∨C) | (A∧B)∨(A∧C) | Equivalent\nT | T | T | T        | T           | T\nT | T | F | T        | T           | T\nT | F | T | T        | T           | T\nT | F | F | F        | F           | T\nF | T | T | F        | F           | T\nF | T | F | F        | F           | T\nF | F | T | F        | F           | T\nF | F | F | F        | F           | T'
-       };
-     },
-
-     // Type 40: Distributive (OR over AND)
-     40: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `${A} ${orWord} (${B} ${andWord} ${C}) equals (${A} ${orWord} ${B}) ${andWord} (${A} ${orWord} ${C})`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `OR distributes over AND: ${D} ∨ (${E} ∧ ${F}) = (${D} ∨ ${E}) ∧ (${D} ∨ ${F})`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `Distribution: ${G} ∨ (${H} ∧ ${I}) ≡ (${G} ∨ ${H}) ∧ (${G} ∨ ${I})`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `${J} or (${K} and ${L}) is equivalent to (${J} or ${K}) and (${J} or ${L})`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `Distributive law: ${M} ∨ (${N} ∧ ${O}) = (${M} ∨ ${N}) ∧ (${M} ∨ ${O})`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `OR distributes: ${P} ∨ (${Q} ∧ ${R}) ↔ (${P} ∨ ${Q}) ∧ (${P} ∨ ${R})`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           const andWord = choice(AND_VARIANTS);
-           const orWord = choice(OR_VARIANTS);
-           return `(${S} ${orWord} ${T}) ${andWord} (${S} ${orWord} ${U}) is the expanded form of ${S} ${orWord} (${T} ${andWord} ${U})`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'distributive_or_and',
-         structure: 'A∨(B∧C)≡(A∨B)∧(A∨C)',
-         anchors: ['distribution over conjunction', 'OR expansion', 'logical addition'],
-         transforms: ['distribution application', 'AND factoring', 'disjunction expansion'],
-         why_it_works: 'OR can be distributed across AND like addition over multiplication',
-         historical_context: 'Distributive laws in Boolean algebra and logic',
-         n_back_cues: ['OR-AND distribution', 'expansion patterns', 'factoring detection'],
-         ascii_diagram: 'A ∨ (B ∧ C)\n     ↓\n  (A ∨ B) ∧ (A ∨ C)',
-         formal_logic: '⊨ A∨(B∧C)↔(A∨B)∧(A∨C)',
-         truth_table: 'A | B | C | A∨(B∧C) | (A∨B)∧(A∨C) | Equivalent\nT | T | T | T        | T           | T\nT | T | F | T        | T           | T\nT | F | T | T        | T           | T\nT | F | F | T        | T           | T\nF | T | T | T        | T           | T\nF | T | F | F        | F           | T\nF | F | T | F        | F           | T\nF | F | F | F        | F           | T'
-       };
-     },
-
-     // Type 41: Idempotent (AND)
-     41: () => {
-       const variants = [
-         () => {
-           const [A] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `${A} ${andWord} ${A} equals ${A}`;
-         },
-         () => {
-           const [B] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `AND is idempotent: ${B} ∧ ${B} = ${B}`;
-         },
-         () => {
-           const [C] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `${C} and ${C} is just ${C}`;
-         },
-         () => {
-           const [D] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `Conjunction with itself: ${D} ∧ ${D} ≡ ${D}`;
-         },
-         () => {
-           const [E] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `Repeating AND doesn't change: ${E} ∧ ${E} = ${E}`;
-         },
-         () => {
-           const [F] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `${F} ${andWord} ${F} ↔ ${F}`;
-         },
-         () => {
-           const [G] = getNextLetters(1);
-           const andWord = choice(AND_VARIANTS);
-           return `Idempotency of conjunction: ${G} ∧ ${G} ≡ ${G}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'idempotent_and',
-         structure: '(A∧A)≡A',
-         anchors: ['self-conjunction', 'AND repetition', 'conjunctive identity'],
-         transforms: ['duplicate elimination', 'self-simplification', 'redundancy removal'],
-         why_it_works: 'Conjoining a proposition with itself doesn't change its truth value',
-         historical_context: 'Idempotent laws in Boolean algebra',
-         n_back_cues: ['repetition patterns', 'self-conjunction', 'redundancy detection'],
-         ascii_diagram: 'A ∧ A\n  ↓\n   A',
-         formal_logic: '⊨ (A∧A)↔A',
-         truth_table: 'A | A∧A | Equivalent\nT | T   | T\nF | F   | T'
-       };
-     },
-
-     // Type 42: Idempotent (OR)
-     42: () => {
-       const variants = [
-         () => {
-           const [A] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `${A} ${orWord} ${A} equals ${A}`;
-         },
-         () => {
-           const [B] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `OR is idempotent: ${B} ∨ ${B} = ${B}`;
-         },
-         () => {
-           const [C] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `${C} or ${C} is just ${C}`;
-         },
-         () => {
-           const [D] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `Disjunction with itself: ${D} ∨ ${D} ≡ ${D}`;
-         },
-         () => {
-           const [E] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `Repeating OR doesn't change: ${E} ∨ ${E} = ${E}`;
-         },
-         () => {
-           const [F] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `${F} ${orWord} ${F} ↔ ${F}`;
-         },
-         () => {
-           const [G] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `Idempotency of disjunction: ${G} ∨ ${G} ≡ ${G}`;
-         },
-         () => {
-           const [H] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `${H} or ${H} is equivalent to ${H}`;
-         },
-         () => {
-           const [I] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `OR repeated: ${I} ∨ ${I} = ${I}`;
-         },
-         () => {
-           const [J] = getNextLetters(1);
-           const orWord = choice(OR_VARIANTS);
-           return `${J} disjoined with itself equals ${J}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'idempotent_or',
-         structure: '(A∨A)≡A',
-         anchors: ['self-disjunction', 'OR repetition', 'disjunctive identity'],
-         transforms: ['duplicate elimination', 'self-simplification', 'redundancy removal'],
-         why_it_works: 'Disjoining a proposition with itself doesn't change its truth value',
-         historical_context: 'Idempotent laws in Boolean algebra',
-         n_back_cues: ['repetition patterns', 'self-disjunction', 'redundancy detection'],
-         ascii_diagram: 'A ∨ A\n  ↓\n   A',
-         formal_logic: '⊨ (A∨A)↔A',
-         truth_table: 'A | A∨A | Equivalent\nT | T   | T\nF | F   | T'
-       };
-     },
-
-     // Type 43: Resolution
-     43: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${A} ${orWord} ${B}; ${notWord} ${A} ${orWord} ${C}; therefore ${B} ${orWord} ${C}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${D} ∨ ${E}; ¬${D} ∨ ${F}; therefore ${E} ∨ ${F}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${G} or ${H}; not ${G} or ${I}; therefore ${H} or ${I}`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${J} ∨ ${K}; ¬${J} ∨ ${L}; thus ${K} ∨ ${L}`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${M} or ${N}; not ${M} or ${O}; therefore ${N} or ${O}`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${P} ∨ ${Q}; ¬${P} ∨ ${R}; therefore ${Q} ∨ ${R}`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${S} or ${T}; not ${S} or ${U}; thus ${T} or ${U}`;
-         },
-         () => {
-           const [V, W, X] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${V} ∨ ${W}; ¬${V} ∨ ${X}; therefore ${W} ∨ ${X}`;
-         },
-         () => {
-           const [Y, Z, A] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${Y} or ${Z}; not ${Y} or ${A}; therefore ${Z} or ${A}`;
-         },
-         () => {
-           const [B, C, D] = getNextLetters(3);
-           const orWord = choice(OR_VARIANTS);
-           const notWord = choice(NOT_VARIANTS);
-           return `${B} ∨ ${C}; ¬${B} ∨ ${D}; thus ${C} ∨ ${D}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'resolution',
-         structure: '(A∨B)∧(¬A∨C)⇒(B∨C)',
-         anchors: ['complementary literals', 'clause elimination', 'inference resolution'],
-         transforms: ['literal cancellation', 'clause merging', 'resolution step'],
-         why_it_works: 'When one clause has A and another has ¬A, they can be resolved by combining the remaining literals',
-         historical_context: 'Robinson 1965, automated theorem proving, refutation completeness',
-         n_back_cues: ['complementary pairs', 'literal elimination', 'clause fusion'],
-         ascii_diagram: '(A ∨ B) ∧ (¬A ∨ C)\n       ↓\n      (B ∨ C)',
-         formal_logic: '⊨ ((A∨B)∧(¬A∨C))→(B∨C)',
-         truth_table: 'A | B | C | A∨B | ¬A∨C | (A∨B)∧(¬A∨C) | B∨C\nT | T | T | T   | T    | T             | T\nT | T | F | T   | F    | F             | T\nT | F | T | T   | F    | F             | T\nT | F | F | T   | F    | F             | F\nF | T | T | T   | T    | T             | T\nF | T | F | T   | T    | T             | T\nF | F | T | F   | T    | F             | T\nF | F | F | F   | T    | F             | F'
-       };
-     },
-
-     // Type 44: Universal modus ponens
-     44: () => {
-       const variants = [
-         () => {
-           const [A, B, C] = getNextLetters(3);
-           return `For all x, if x is ${A} then x is ${B}; ${C} is ${A}; therefore ${C} is ${B}`;
-         },
-         () => {
-           const [D, E, F] = getNextLetters(3);
-           return `Every ${D} has property ${E}; ${F} is a ${D}; therefore ${F} has property ${E}`;
-         },
-         () => {
-           const [G, H, I] = getNextLetters(3);
-           return `All ${G} are ${H}; ${I} is ${G}; therefore ${I} is ${H}`;
-         },
-         () => {
-           const [J, K, L] = getNextLetters(3);
-           return `For every x, ${J}(x) implies ${K}(x); ${L} satisfies ${J}; therefore ${L} satisfies ${K}`;
-         },
-         () => {
-           const [M, N, O] = getNextLetters(3);
-           return `All instances of ${M} exhibit ${N}; ${O} is an instance of ${M}; therefore ${O} exhibits ${N}`;
-         },
-         () => {
-           const [P, Q, R] = getNextLetters(3);
-           return `Every ${P} possesses ${Q}; ${R} is a ${P}; therefore ${R} possesses ${Q}`;
-         },
-         () => {
-           const [S, T, U] = getNextLetters(3);
-           return `For all x, if ${S}(x) then ${T}(x); ${U} has ${S}; therefore ${U} has ${T}`;
-         },
-         () => {
-           const [V, W, X] = getNextLetters(3);
-           return `All ${V} satisfy ${W}; ${X} is ${V}; therefore ${X} satisfies ${W}`;
-         },
-         () => {
-           const [Y, Z, A] = getNextLetters(3);
-           return `Every element that is ${Y} is also ${Z}; ${A} is ${Y}; therefore ${A} is ${Z}`;
-         },
-         () => {
-           const [B, C, D] = getNextLetters(3);
-           return `For all x, ${B}(x) → ${C}(x); ${D} ∈ ${B}; therefore ${D} ∈ ${C}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'universal_modus_ponens',
-         structure: '∀x(A(x)→B(x))∧A(C)⇒B(C)',
-         anchors: ['universal quantification', 'conditional application', 'instance derivation'],
-         transforms: ['universal instantiation', 'conditional application', 'property inheritance'],
-         why_it_works: 'If a property holds for all elements and an instance satisfies the antecedent, it must satisfy the consequent',
-         historical_context: 'Aristotelian syllogisms, predicate logic foundations',
-         n_back_cues: ['universal-to-particular', 'conditional triggering', 'property transfer'],
-         ascii_diagram: '∀x(A→B)\n    ↓\n  A(C)→B(C)',
-         formal_logic: '⊨ ∀x(A(x)→B(x))∧A(c)⇒B(c)',
-         truth_table: 'A(x) | B(x) | ∀(A→B) | A(c) | B(c)\nT   | T   | T      | T   | T\nT   | F   | F      | T   | F\nF   | T   | T      | F   | T\nF   | F   | T      | F   | F'
-       };
-     },
-
-     // Type 45: Existential modus tollens
-     45: () => {
-       const variants = [
-         () => {
-           const [A, B] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `If something is ${A} then it is ${B}; nothing is ${B}; therefore nothing is ${A}`;
-         },
-         () => {
-           const [C, D] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `All ${C} are ${D}; no ${D} exists; therefore no ${C} exists`;
-         },
-         () => {
-           const [E, F] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Every ${E} has property ${F}; nothing has property ${F}; therefore nothing is ${E}`;
-         },
-         () => {
-           const [G, H] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `For all x, ${G}(x) → ${H}(x); ¬∃x ${H}(x); therefore ¬∃x ${G}(x)`;
-         },
-         () => {
-           const [I, J] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `If any ${I} exists, it must be ${J}; no ${J} exists; therefore no ${I} exists`;
-         },
-         () => {
-           const [K, L] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `All instances of ${K} are ${L}; there are no ${L}; therefore there are no ${K}`;
-         },
-         () => {
-           const [M, N] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `Every ${M} possesses ${N}; nothing possesses ${N}; therefore nothing is ${M}`;
-         },
-         () => {
-           const [O, P] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `For all x, if ${O}(x) then ${P}(x); no x has ${P}; therefore no x has ${O}`;
-         },
-         () => {
-           const [Q, R] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `All ${Q} satisfy ${R}; nothing satisfies ${R}; therefore nothing is ${Q}`;
-         },
-         () => {
-           const [S, T] = getNextLetters(2);
-           const notWord = choice(NOT_VARIANTS);
-           return `If there is any ${S}, it is ${T}; there is no ${T}; therefore there is no ${S}`;
-         }
-       ];
-       const premise = choice(variants)();
-       return {
-         premise,
-         logicType: 'existential_modus_tollens',
-         structure: '∀x(A(x)→B(x))∧¬∃x(B(x))⇒¬∃x(A(x))',
-         anchors: ['universal implication', 'existential denial', 'backward chaining'],
-         transforms: ['contraposition application', 'existential elimination', 'vacuous satisfaction'],
-         why_it_works: 'If the consequent of a universal implication is impossible, the antecedent must also be impossible',
-         historical_context: 'Modus tollens in predicate logic, existential import debates',
-         n_back_cues: ['universal-to-existential denial', 'consequent impossibility', 'antecedent elimination'],
-         ascii_diagram: '∀x(A→B)\n    ↓\n ¬∃x B\n    ↓\n¬∃x A',
-         formal_logic: '⊨ ∀x(A(x)→B(x))∧¬∃x(B(x))⇒¬∃x(A(x))',
-         truth_table: 'A(x) | B(x) | ∀(A→B) | ∃B | ¬∃B | ¬∃A\nT   | T   | T      | T  | F   | F\nT   | F   | F      | T  | F   | F\nF   | T   | T      | T  | F   | T\nF   | F   | T      | F  | T   | T'
-       };
-     },
-
-    // Type 46: Particular affirmative
-    46: () => {
-      const [F, G] = getNextLetters(2);
-      const premise = `Some ${F} are ${G}; at least one ${F} has property ${G}`;
-      return {
-        premise,
-        logicType: 'particular_affirmative',
-        structure: '∃x(F(x)∧G(x))'
-      };
-    },
-
-    // Type 47: Particular negative
-    47: () => {
-      const [H, I] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `Some ${H} are ${notWord} ${I}; at least one ${H} lacks property ${I}`;
-      return {
-        premise,
-        logicType: 'particular_negative',
-        structure: '∃x(H(x)∧¬I(x))'
-      };
-    },
-
-    // Type 48: Universal affirmative
-    48: () => {
-      const [J, K] = getNextLetters(2);
-      const premise = `All ${J} are ${K}; every ${J} has property ${K}`;
-      return {
-        premise,
-        logicType: 'universal_affirmative',
-        structure: '∀x(J(x)→K(x))'
-      };
-    },
-
-    // Type 49: Universal negative
-    49: () => {
-      const [L, M] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `No ${L} are ${M}; all ${L} are ${notWord} ${M}`;
-      return {
-        premise,
-        logicType: 'universal_negative',
-        structure: '∀x(L(x)→¬M(x))'
-      };
-    },
-
-    // Type 50: Subalternation
-    50: () => {
-      const [N, O] = getNextLetters(2);
-      const premise = `All ${N} are ${O}; therefore some ${N} are ${O}`;
-      return {
-        premise,
-        logicType: 'subalternation',
-        structure: '∀x(N(x)→O(x))⇒∃x(N(x)∧O(x))'
-      };
-    },
-
-    // Type 51: Conversion (simple)
-    51: () => {
-      const [P, Q] = getNextLetters(2);
-      const premise = `Some ${P} are ${Q}; therefore some ${Q} are ${P}`;
-      return {
-        premise,
-        logicType: 'conversion_simple',
-        structure: '∃x(P(x)∧Q(x))⇒∃x(Q(x)∧P(x))'
-      };
-    },
-
-    // Type 52: Conversion (per accidens)
-    52: () => {
-      const [R, S] = getNextLetters(2);
-      const premise = `All ${R} are ${S}; therefore some ${S} are ${R}`;
-      return {
-        premise,
-        logicType: 'conversion_per_accidens',
-        structure: '∀x(R(x)→S(x))⇒∃x(S(x)∧R(x))'
-      };
-    },
-
-    // Type 53: Obversion
-    53: () => {
-      const [T, U] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `All ${T} are ${U}; therefore no ${T} are ${notWord} ${U}`;
-      return {
-        premise,
-        logicType: 'obversion',
-        structure: '∀x(T(x)→U(x))⇒∀x(T(x)→¬¬U(x))'
-      };
-    },
-
-    // Type 54: Contraposition (categorical)
-    54: () => {
-      const [V, W] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `All ${V} are ${W}; therefore all ${notWord} ${W} are ${notWord} ${V}`;
-      return {
-        premise,
-        logicType: 'contraposition_categorical',
-        structure: '∀x(V(x)→W(x))⇒∀x(¬W(x)→¬V(x))'
-      };
-    },
-
-    // Type 55: Square of opposition - contradictory
-    55: () => {
-      const [X, Y] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `All ${X} are ${Y} contradicts some ${X} are ${notWord} ${Y}`;
-      return {
-        premise,
-        logicType: 'square_contradictory',
-        structure: '∀x(X(x)→Y(x))⊥∃x(X(x)∧¬Y(x))'
-      };
-    },
-
-    // Type 56: Square of opposition - contrary
-    56: () => {
-      const [Z, A] = getNextLetters(2);
-      const premise = `All ${Z} are ${A} and no ${Z} are ${A} cannot both be true`;
-      return {
-        premise,
-        logicType: 'square_contrary',
-        structure: '¬(∀x(Z(x)→A(x))∧∀x(Z(x)→¬A(x)))'
-      };
-    },
-
-    // Type 57: Square of opposition - subcontrary
-    57: () => {
-      const [B, C] = getNextLetters(2);
-      const notWord = choice(NOT_VARIANTS);
-      const premise = `Some ${B} are ${C} or some ${B} are ${notWord} ${C} must be true`;
-      return {
-        premise,
-        logicType: 'square_subcontrary',
-        structure: '∃x(B(x)∧C(x))∨∃x(B(x)∧¬C(x))'
-      };
-    },
-
-    // Type 58: Barbara syllogism
-    58: () => {
-      const [D, E, F] = getNextLetters(3);
-      const premise = `All ${E} are ${F}; all ${D} are ${E}; therefore all ${D} are ${F}`;
-      return {
-        premise,
-        logicType: 'barbara_syllogism',
-        structure: '∀x(E(x)→F(x))∧∀x(D(x)→E(x))⇒∀x(D(x)→F(x))'
-      };
-    },
-
-    // Type 59: Celarent syllogism
-    59: () => {
-      const [G, H, I] = getNextLetters(3);
-      const premise = `No ${H} are ${I}; all ${G} are ${H}; therefore no ${G} are ${I}`;
-      return {
-        premise,
-        logicType: 'celarent_syllogism',
-        structure: '∀x(H(x)→¬I(x))∧∀x(G(x)→H(x))⇒∀x(G(x)→¬I(x))'
-      };
-    },
-
-    // Type 60: Darii syllogism
-    60: () => {
+    // Type 4: Hypothetical syllogism
+    4: () => {
       const [J, K, L] = getNextLetters(3);
-      const premise = `All ${K} are ${L}; some ${J} are ${K}; therefore some ${J} are ${L}`;
+      const ifWord = choice(IF_VARIANTS);
+      const thenWord = choice(THEN_VARIANTS);
       return {
-        premise,
-        logicType: 'darii_syllogism',
-        structure: '∀x(K(x)→L(x))∧∃x(J(x)∧K(x))⇒∃x(J(x)∧L(x))'
+        premise: `${ifWord} ${J} ${thenWord} ${K}; ${ifWord} ${K} ${thenWord} ${L}`,
+        logicType: 'hypothetical_syllogism',
+        structure: '(P→Q)∧(Q→R)⇒(P→R)',
+        typeId: 4
       };
     },
 
-    // Type 61: Exchange argument improvement
-    61: () => {
+    // Type 5: Disjunctive introduction
+    5: () => {
       const [M, N] = getNextLetters(2);
-      const premise = `Choose ${M} minimal under criterion P; if component X can be swapped for Y to improve, contradiction; therefore ${M} is optimal`;
+      const orWord = choice(OR_VARIANTS);
       return {
-        premise,
-        logicType: 'exchange_argument',
-        structure: 'minimal(M,P)∧(swap→better)⇒⊥∴optimal(M)'
+        premise: `${M} is true; therefore ${M} ${orWord} ${N}`,
+        logicType: 'disjunctive_introduction',
+        structure: 'P⇒(P∨Q)',
+        typeId: 5
       };
     },
 
-    // Type 62: Bijection and inversion
-    62: () => {
+    // Type 6: Conjunction elimination
+    6: () => {
       const [O, P] = getNextLetters(2);
-      const premise = `Mapping from ${O} to ${P} is one-to-one and onto; therefore inverse mapping from ${P} to ${O} exists uniquely`;
+      const andWord = choice(AND_VARIANTS);
       return {
-        premise,
-        logicType: 'bijection_inversion',
-        structure: 'bijection(O→P)⇒∃!inverse(P→O)'
+        premise: `${O} ${andWord} ${P} are both true; therefore ${O}`,
+        logicType: 'conjunction_elimination',
+        structure: '(P∧Q)⇒P',
+        typeId: 6
       };
+    },
+
+    // Type 7: Universal instantiation
+    7: () => {
+      const [Q, R] = getNextLetters(2);
+      return {
+        premise: `All ${Q} are ${R}; this is a ${Q}; therefore it is ${R}`,
+        logicType: 'universal_instantiation',
+        structure: '∀x(P(x)→Q(x))∧P(a)⇒Q(a)',
+        typeId: 7
+      };
+    },
+
+    // Type 8: Existential generalization
+    8: () => {
+      const [S, T] = getNextLetters(2);
+      return {
+        premise: `This ${S} is ${T}; therefore some ${S} is ${T}`,
+        logicType: 'existential_generalization',
+        structure: 'P(a)⇒∃x(P(x))',
+        typeId: 8
+      };
+    },
+
+    // Type 9: De Morgan's Law (NOT AND)
+    9: () => {
+      const [U, V] = getNextLetters(2);
+      const andWord = choice(AND_VARIANTS);
+      const orWord = choice(OR_VARIANTS);
+      const notWord = choice(NOT_VARIANTS);
+      return {
+        premise: `${notWord} (${U} ${andWord} ${V}) equals (${notWord} ${U}) ${orWord} (${notWord} ${V})`,
+        logicType: 'de_morgan_and',
+        structure: '¬(P∧Q)≡(¬P∨¬Q)',
+        typeId: 9
+      };
+    },
+
+    // Type 10: De Morgan's Law (NOT OR)
+    10: () => {
+      const [W, X] = getNextLetters(2);
+      const andWord = choice(AND_VARIANTS);
+      const orWord = choice(OR_VARIANTS);
+      const notWord = choice(NOT_VARIANTS);
+      return {
+        premise: `${notWord} (${W} ${orWord} ${X}) equals (${notWord} ${W}) ${andWord} (${notWord} ${X})`,
+        logicType: 'de_morgan_or',
+        structure: '¬(P∨Q)≡(¬P∧¬Q)',
+        typeId: 10
+      };
+    },
+
+    // Type 11: Contrapositive
+    11: () => {
+      const [Y, Z] = getNextLetters(2);
+      const implies = choice(IMPLIES_VARIANTS);
+      return {
+        premise: `${Y} ${implies} ${Z} means ¬${Z} ${implies} ¬${Y}`,
+        logicType: 'contrapositive',
+        structure: '(P→Q)≡(¬Q→¬P)',
+        typeId: 11
+      };
+    },
+
+    // Type 12: Double negation
+    12: () => {
+      const [A] = getNextLetters(1);
+      const notWord = choice(NOT_VARIANTS);
+      return {
+        premise: `${notWord} ${notWord} ${A} equals ${A}`,
+        logicType: 'double_negation',
+        structure: '¬¬P≡P',
+        typeId: 12
+      };
+    },
+
+    // Type 13: Biconditional elimination (forward)
+    13: () => {
+      const [B, C] = getNextLetters(2);
+      return {
+        premise: `${B} if and only if ${C}; ${B} is true; therefore ${C}`,
+        logicType: 'biconditional_elimination_forward',
+        structure: '(P↔Q)∧P⇒Q',
+        typeId: 13
+      };
+    },
+
+    // Type 14: Biconditional elimination (backward)
+    14: () => {
+      const [D, E] = getNextLetters(2);
+      return {
+        premise: `${D} if and only if ${E}; ${E} is true; therefore ${D}`,
+        logicType: 'biconditional_elimination_backward',
+        structure: '(P↔Q)∧Q⇒P',
+        typeId: 14
+      };
+    },
+
+    // Type 15: Exclusive OR
+    15: () => {
+      const [F, G] = getNextLetters(2);
+      return {
+        premise: `Either ${F} or ${G} but not both`,
+        logicType: 'exclusive_or',
+        structure: 'P⊕Q≡(P∨Q)∧¬(P∧Q)',
+        typeId: 15
+      };
+    },
+
+    // Type 16: Material conditional
+    16: () => {
+      const [H, I] = getNextLetters(2);
+      const implies = choice(IMPLIES_VARIANTS);
+      const orWord = choice(OR_VARIANTS);
+      return {
+        premise: `${H} ${implies} ${I} equals not ${H} ${orWord} ${I}`,
+        logicType: 'material_conditional',
+        structure: '(P→Q)≡(¬P∨Q)',
+        typeId: 16
+      };
+    },
+
+    // Type 17: Quantifier negation (universal to existential)
+    17: () => {
+      const [J, K] = getNextLetters(2);
+      return {
+        premise: `Not all ${J} are ${K} means some ${J} are not ${K}`,
+        logicType: 'quantifier_negation_universal',
+        structure: '¬∀x(P(x))≡∃x(¬P(x))',
+        typeId: 17
+      };
+    },
+
+    // Type 18: Quantifier negation (existential to universal)
+    18: () => {
+      const [L, M] = getNextLetters(2);
+      return {
+        premise: `There is no ${L} that is ${M} means all ${L} are not ${M}`,
+        logicType: 'quantifier_negation_existential',
+        structure: '¬∃x(P(x))≡∀x(¬P(x))',
+        typeId: 18
+      };
+    },
+
+    // Type 19: Disjunctive syllogism
+    19: () => {
+      const [N, O] = getNextLetters(2);
+      const orWord = choice(OR_VARIANTS);
+      return {
+        premise: `${N} ${orWord} ${O}; not ${N}; therefore ${O}`,
+        logicType: 'disjunctive_syllogism',
+        structure: '(P∨Q)∧¬P⇒Q',
+        typeId: 19
+      };
+    },
+
+    // Type 20: Constructive dilemma
+    20: () => {
+      const [P, Q, R, S] = getNextLetters(4);
+      return {
+        premise: `If ${P} then ${Q}; if ${R} then ${S}; either ${P} or ${R}; therefore ${Q} or ${S}`,
+        logicType: 'constructive_dilemma',
+        structure: '((P→Q)∧(R→S)∧(P∨R))⇒(Q∨S)',
+        typeId: 20
+      };
+    },
+
+    // Type 21: Destructive dilemma
+    21: () => {
+      const [T, U, V, W] = getNextLetters(4);
+      return {
+        premise: `If ${T} then ${U}; if ${V} then ${W}; not ${U} or not ${W}; therefore not ${T} or not ${V}`,
+        logicType: 'destructive_dilemma',
+        structure: '((P→Q)∧(R→S)∧(¬Q∨¬S))⇒(¬P∨¬R)',
+        typeId: 21
+      };
+    },
+
+    // Type 22: Absorption
+    22: () => {
+      const [X, Y] = getNextLetters(2);
+      return {
+        premise: `If ${X} then ${Y} implies if ${X} then (${X} and ${Y})`,
+        logicType: 'absorption',
+        structure: '(P→Q)⇒(P→(P∧Q))',
+        typeId: 22
+      };
+    },
+
+    // Type 23: Commutativity (AND)
+    23: () => {
+      const [Z, A] = getNextLetters(2);
+      const andWord = choice(AND_VARIANTS);
+      return {
+        premise: `${Z} ${andWord} ${A} equals ${A} ${andWord} ${Z}`,
+        logicType: 'commutative_and',
+        structure: '(P∧Q)≡(Q∧P)',
+        typeId: 23
+      };
+    },
+
+    // Type 24: Commutativity (OR)
+    24: () => {
+      const [B, C] = getNextLetters(2);
+      const orWord = choice(OR_VARIANTS);
+      return {
+        premise: `${B} ${orWord} ${C} equals ${C} ${orWord} ${B}`,
+        logicType: 'commutative_or',
+        structure: '(P∨Q)≡(Q∨P)',
+        typeId: 24
+      };
+    },
+
+    // Type 25: Law of excluded middle
+    25: () => {
+      const [D] = getNextLetters(1);
+      return {
+        premise: `${D} or not ${D} is always true`,
+        logicType: 'excluded_middle',
+        structure: 'P∨¬P≡⊤',
+        typeId: 25
+      };
+    },
+
+    // Type 26: Law of non-contradiction
+    26: () => {
+      const [E] = getNextLetters(1);
+      return {
+        premise: `${E} and not ${E} is always false`,
+        logicType: 'non_contradiction',
+        structure: '¬(P∧¬P)≡⊤',
+        typeId: 26
+      };
+    },
+
+    // Type 27: Reductio ad absurdum
+    27: () => {
+      const [F, G] = getNextLetters(2);
+      return {
+        premise: `Assume ${F}; this leads to contradiction; therefore not ${F}`,
+        logicType: 'reductio_ad_absurdum',
+        structure: '(P→⊥)⇒¬P',
+        typeId: 27
+      };
+    },
+
+    // Type 28: Proof by cases
+    28: () => {
+      const [H, I, J] = getNextLetters(3);
+      return {
+        premise: `Either ${H} or ${I}; if ${H} then ${J}; if ${I} then ${J}; therefore ${J}`,
+        logicType: 'proof_by_cases',
+        structure: '((P∨Q)∧(P→R)∧(Q→R))⇒R',
+        typeId: 28
+      };
+    },
+
+    // Type 29: Transitivity of equality
+    29: () => {
+      const [K, L, M] = getNextLetters(3);
+      return {
+        premise: `${K} equals ${L}; ${L} equals ${M}; therefore ${K} equals ${M}`,
+        logicType: 'transitivity_equality',
+        structure: '(P=Q)∧(Q=R)⇒(P=R)',
+        typeId: 29
+      };
+    },
+
+    // Type 30: Substitution of equals
+    30: () => {
+      const [N, O, P] = getNextLetters(3);
+      return {
+        premise: `${N} equals ${O}; ${P}(${N}) is true; therefore ${P}(${O}) is true`,
+        logicType: 'substitution_equals',
+        structure: '(P=Q)∧F(P)⇒F(Q)',
+        typeId: 30
+      };
+    },
+
+    // Type 31: Transitivity of implication
+    31: () => {
+      const [Q, R, S] = getNextLetters(3);
+      const implies = choice(IMPLIES_VARIANTS);
+      return {
+        premise: `${Q} ${implies} ${R} and ${R} ${implies} ${S}, so ${Q} ${implies} ${S}`,
+        logicType: 'transitivity_implication',
+        structure: '(P→Q)∧(Q→R)⇒(P→R)',
+        typeId: 31
+      };
+    },
+
+    // Type 32: Set membership and subset
+    32: () => {
+      const [T, U, V] = getNextLetters(3);
+      return {
+        premise: `${T} is in set ${U}; ${U} is a subset of ${V}; therefore ${T} is in ${V}`,
+        logicType: 'set_membership_subset',
+        structure: '(x∈A)∧(A⊆B)⇒(x∈B)',
+        typeId: 32
+      };
+    },
+
+    // Type 33: Pigeonhole principle
+    33: () => {
+      const [W, X] = getNextLetters(2);
+      return {
+        premise: `More ${W} than ${X} means some ${X} has multiple ${W}`,
+        logicType: 'pigeonhole_principle',
+        structure: '|A|>|B|∧f:A→B⇒∃b∈B:|f⁻¹(b)|≥2',
+        typeId: 33
+      };
+    },
+
+    // Type 34: Induction base case
+    34: () => {
+      const [Y] = getNextLetters(1);
+      return {
+        premise: `Property ${Y} holds for base case n=0`,
+        logicType: 'induction_base',
+        structure: 'P(0)',
+        typeId: 34
+      };
+    },
+
+    // Type 35: Induction step
+    35: () => {
+      const [A] = getNextLetters(1);
+      return {
+        premise: `If ${A}(k) then ${A}(k+1) for all k`,
+        logicType: 'induction_step',
+        structure: '∀k(P(k)→P(k+1))',
+        typeId: 35
+      };
+    },
+
+    // Type 36: Complete induction
+    36: () => {
+      const [C] = getNextLetters(1);
+      return {
+        premise: `Base ${C}(0) and step ${C}(k)→${C}(k+1) proves ∀n ${C}(n)`,
+        logicType: 'induction_complete',
+        structure: 'P(0)∧∀k(P(k)→P(k+1))⇒∀n(P(n))',
+        typeId: 36
+      };
+    },
+
+    // Type 37: Associative (AND)
+    37: () => {
+      const [E, F, G] = getNextLetters(3);
+      const andWord = choice(AND_VARIANTS);
+      return {
+        premise: `(${E} ${andWord} ${F}) ${andWord} ${G} equals ${E} ${andWord} (${F} ${andWord} ${G})`,
+        logicType: 'associative_and',
+        structure: '((A∧B)∧C)≡(A∧(B∧C))',
+        typeId: 37
+      };
+    },
+
+    // Type 38: Associative (OR)
+    38: () => {
+      const [H, I, J] = getNextLetters(3);
+      const orWord = choice(OR_VARIANTS);
+      return {
+        premise: `(${H} ${orWord} ${I}) ${orWord} ${J} equals ${H} ${orWord} (${I} ${orWord} ${J})`,
+        logicType: 'associative_or',
+        structure: '((A∨B)∨C)≡(A∨(B∨C))',
+        typeId: 38
+      };
+    },
+
+    // Type 39: Distributive (AND over OR)
+    39: () => {
+      const [K, L, M] = getNextLetters(3);
+      const andWord = choice(AND_VARIANTS);
+      const orWord = choice(OR_VARIANTS);
+      return {
+        premise: `${K} ${andWord} (${L} ${orWord} ${M}) equals (${K} ${andWord} ${L}) ${orWord} (${K} ${andWord} ${M})`,
+        logicType: 'distributive_and_or',
+        structure: 'A∧(B∨C)≡(A∧B)∨(A∧C)',
+        typeId: 39
+      };
+    },
+
+    // Type 40: Distributive (OR over AND)
+    40: () => {
+      const [N, O, P] = getNextLetters(3);
+      const andWord = choice(AND_VARIANTS);
+      const orWord = choice(OR_VARIANTS);
+      return {
+        premise: `${N} ${orWord} (${O} ${andWord} ${P}) equals (${N} ${orWord} ${O}) ${andWord} (${N} ${orWord} ${P})`,
+        logicType: 'distributive_or_and',
+        structure: 'A∨(B∧C)≡(A∨B)∧(A∨C)',
+        typeId: 40
+      };
+    },
+
+    // Type 41: Identity (AND with true)
+    41: () => {
+      const [Q] = getNextLetters(1);
+      return {
+        premise: `${Q} and true equals ${Q}`,
+        logicType: 'identity_and_true',
+        structure: 'P∧⊤≡P',
+        typeId: 41
+      };
+    },
+
+    // Type 42: Identity (OR with false)
+    42: () => {
+      const [R] = getNextLetters(1);
+      return {
+        premise: `${R} or false equals ${R}`,
+        logicType: 'identity_or_false',
+        structure: 'P∨⊥≡P',
+        typeId: 42
+      };
+    },
+
+    // Type 43: Domination (AND with false)
+    43: () => {
+      const [S] = getNextLetters(1);
+      return {
+        premise: `${S} and false equals false`,
+        logicType: 'domination_and_false',
+        structure: 'P∧⊥≡⊥',
+        typeId: 43
+      };
+    },
+
+    // Type 44: Domination (OR with true)
+    44: () => {
+      const [T] = getNextLetters(1);
+      return {
+        premise: `${T} or true equals true`,
+        logicType: 'domination_or_true',
+        structure: 'P∨⊤≡⊤',
+        typeId: 44
+      };
+    },
+
+    // Type 45: Idempotent (AND)
+    45: () => {
+      const [U] = getNextLetters(1);
+      return {
+        premise: `${U} and ${U} equals ${U}`,
+        logicType: 'idempotent_and',
+        structure: 'P∧P≡P',
+        typeId: 45
+      };
+    },
+
+    // Type 46: Idempotent (OR)
+    46: () => {
+      const [V] = getNextLetters(1);
+      return {
+        premise: `${V} or ${V} equals ${V}`,
+        logicType: 'idempotent_or',
+        structure: 'P∨P≡P',
+        typeId: 46
+      };
+    },
+
+    // Type 47: Complement (AND)
+    47: () => {
+      const [W] = getNextLetters(1);
+      return {
+        premise: `${W} and not ${W} equals false`,
+        logicType: 'complement_and',
+        structure: 'P∧¬P≡⊥',
+        typeId: 47
+      };
+    },
+
+    // Type 48: Complement (OR)  
+    48: () => {
+      const [X] = getNextLetters(1);
+      return {
+        premise: `${X} or not ${X} equals true`,
+        logicType: 'complement_or',
+        structure: 'P∨¬P≡⊤',
+        typeId: 48
+      };
+    },
+
+    // Type 49: Spatial hierarchy (north)
+    49: () => {
+      const [A, B] = getNextLetters(2, state && state.useWalkthrough);
+      const variants = [
+        `${A} is north of ${B}`,
+        `${A} lies above ${B} in hierarchy`,
+        `${A} supersedes ${B}`,
+        `${A} dominates ${B} spatially`
+      ];
+      return {
+        premise: choice(variants),
+        logicType: 'spatial_hierarchy_north',
+        structure: 'north(A,B)',
+        typeId: 49
+      };
+    },
+
+    // Type 50: Spatial hierarchy (south) - inverse of north
+    50: () => {
+      const [A, B] = getNextLetters(2, state && state.useWalkthrough);
+      const variants = [
+        `${A} is south of ${B}`,
+        `${A} lies below ${B} in hierarchy`,
+        `${A} is subordinate to ${B}`,
+        `${A} is under ${B} spatially`
+      ];
+      return {
+        premise: choice(variants),
+        logicType: 'spatial_hierarchy_south',
+        structure: 'south(A,B)',
+        typeId: 50
+      };
+    },
+
+    // Type 51: Spatial relation (east)
+    51: () => {
+      const [A, B] = getNextLetters(2, state && state.useWalkthrough);
+      const variants = [
+        `${A} is east of ${B}`,
+        `${A} lies to the right of ${B}`,
+        `${A} is adjacent eastward to ${B}`,
+        `${A} parallels ${B} eastward`
+      ];
+      return {
+        premise: choice(variants),
+        logicType: 'spatial_relation_east',
+        structure: 'east(A,B)',
+        typeId: 51
+      };
+    },
+
+    // Type 52: Spatial relation (west) - inverse of east  
+    52: () => {
+      const [A, B] = getNextLetters(2, state && state.useWalkthrough);
+      const variants = [
+        `${A} is west of ${B}`,
+        `${A} lies to the left of ${B}`,
+        `${A} is adjacent westward to ${B}`,
+        `${A} parallels ${B} westward`
+      ];
+      return {
+        premise: choice(variants),
+        logicType: 'spatial_relation_west',
+        structure: 'west(A,B)',
+        typeId: 52
+      };
+    },
+
+    // Type 53: Multi-relation spatial compound
+    53: () => {
+      const [A, B, C] = getNextLetters(3, state && state.useWalkthrough);
+      const variants = [
+        `${A} is west of ${B}; ${A} is south of ${C}`,
+        `${A} is north of ${B}; ${A} is east of ${C}`,
+        `${A} above ${B} and ${A} beside ${C}`,
+        `${A} dominates ${B}; ${A} parallels ${C}`
+      ];
+      return {
+        premise: choice(variants),
+        logicType: 'multi_relation_spatial',
+        structure: 'west(A,B)∧south(A,C)',
+        typeId: 53
+      };
+    },
+
+    // Type 54: Comparative analogy (cross-type match for multi-relation)
+    54: () => {
+      const [A, B, C] = getNextLetters(3, state && state.useWalkthrough);
+      const variants = [
+        `${A} is east of ${B}; ${C} is north of ${B}`,
+        `${A} beside ${B}; ${C} above ${B}`,
+        `${A} parallels ${B} eastward; ${C} supersedes ${B}`
+      ];
+      return {
+        premise: choice(variants),
+        logicType: 'comparative_analogy',
+        structure: 'east(A,B)∧north(C,B)',
+        typeId: 54
+      };
+    },
+
+    // Type 55: Inverse relation
+    55: () => {
+      const [A, B] = getNextLetters(2);
+      return {
+        premise: `${A} is north of ${B} means ${B} is south of ${A}`,
+        logicType: 'inverse_relation',
+        structure: 'R(A,B)≡R⁻¹(B,A)',
+        typeId: 55
+      };
+    },
+
+    // Type 56: Circular reasoning with quantifier
+    56: () => {
+      const [A, B, C] = getNextLetters(3);
+      return {
+        premise: `All ${A} are ${B}; some ${B} are ${C}; those ${C} are ${A}`,
+        logicType: 'circular_quantifier',
+        structure: '∀x(A(x)→B(x))∧∃x(B(x)∧C(x))∧(C→A)',
+        typeId: 56
+      };
+    },
+
+    // Type 57: Bijection
+    57: () => {
+      const [A, B] = getNextLetters(2);
+      return {
+        premise: `Function f: ${A} → ${B} is bijective`,
+        logicType: 'bijection',
+        structure: 'bijective(f:A→B)',
+        typeId: 57
+      };
+    },
+
+    // Type 58: Injection
+    58: () => {
+      const [A, B] = getNextLetters(2);
+      return {
+        premise: `Function f: ${A} → ${B} is injective`,
+        logicType: 'injection',
+        structure: 'injective(f:A→B)',
+        typeId: 58
+      };
+    },
+
+    // Type 59: Surjection
+    59: () => {
+      const [A, B] = getNextLetters(2);
+      return {
+        premise: `Function f: ${A} → ${B} is surjective`,
+        logicType: 'surjection',
+        structure: 'surjective(f:A→B)',
+        typeId: 59
+      };
+    },
+
+    // Type 60: Partial function
+    60: () => {
+      const [A, B] = getNextLetters(2);
+      return {
+        premise: `Function f: ${A} ⇀ ${B} is partial`,
+        logicType: 'partial_function',
+        structure: 'partial(f:A⇀B)',
+        typeId: 60
+      };
+    },
+
+    // Type 61: Total function
+    61: () => {
+      const [A, B] = getNextLetters(2);
+      return {
+        premise: `Function f: ${A} → ${B} is total`,
+        logicType: 'total_function',
+        structure: 'total(f:A→B)',
+        typeId: 61
+      };
+    },
+
+    // Type 62: Composition of functions
+    62: () => {
+      const [A, B, C] = getNextLetters(3);
+      return {
+        premise: `(g ∘ f): ${A} → ${C} where f: ${A} → ${B} and g: ${B} → ${C}`,
+        logicType: 'function_composition',
+        structure: '(g∘f)(x)=g(f(x))',
+        typeId: 62
+      };
+    }
+  }
+
+  // Structure equivalence detection system
+  const structureEquivalence = {
+    // Define equivalence classes for structural matching
+    equivalenceClasses: {
+      // Spatial inversions
+      'north(A,B)': ['south(B,A)'],
+      'south(A,B)': ['north(B,A)'],
+      'east(A,B)': ['west(B,A)'],
+      'west(A,B)': ['east(B,A)'],
+      
+      // Multi-relation patterns (can match if atoms are inverse pairs)
+      'west(A,B)∧south(A,C)': ['east(B,A)∧north(C,A)'],
+      'east(A,B)∧north(C,B)': ['west(B,A)∧south(B,C)'],
+      
+      // Logical equivalences
+      '(P→Q)': ['(¬Q→¬P)'],
+      '(P∧Q)': ['(Q∧P)'],
+      '(P∨Q)': ['(Q∨P)'],
+      '¬(P∧Q)': ['(¬P∨¬Q)'],
+      '¬(P∨Q)': ['(¬P∧¬Q)']
+    },
+
+    // Check if two structures are equivalent
+    areEquivalent(structure1, structure2) {
+      if (!structure1 || !structure2) return false;
+      
+      // Direct match
+      if (structure1 === structure2) return true;
+      
+      // Normalize for comparison
+      const norm1 = this.normalizeStructure(structure1);
+      const norm2 = this.normalizeStructure(structure2);
+      
+      if (norm1 === norm2) return true;
+      
+      // Check spatial inversions
+      if (this.areSpatialInverses(structure1, structure2)) return true;
+      
+      // Check multi-relation inversions
+      if (this.areMultiRelationInverses(structure1, structure2)) return true;
+      
+      // Check logical equivalences
+      if (this.areLogicallyEquivalent(norm1, norm2)) return true;
+      
+      // Check equivalence classes
+      for (const [key, equivalents] of Object.entries(this.equivalenceClasses)) {
+        const keyNorm = this.normalizeStructure(key);
+        const equivNorms = equivalents.map(e => this.normalizeStructure(e));
+        
+        if ((norm1 === keyNorm && equivNorms.includes(norm2)) ||
+            (norm2 === keyNorm && equivNorms.includes(norm1))) {
+          return true;
+        }
+      }
+      
+      return false;
+    },
+
+    // Normalize structure for comparison
+    normalizeStructure(structure) {
+      if (!structure) return '';
+      // Keep the structure but normalize spacing and case
+      return structure.replace(/\s+/g, '').toLowerCase();
+    },
+
+    // Check if two spatial relations are inverses
+    areSpatialInverses(s1, s2) {
+      // Check single spatial relations
+      const spatialPairs = [
+        ['north(', 'south('],
+        ['east(', 'west('],
+        ['above(', 'below('],
+        ['right(', 'left(']
+      ];
+      
+      for (const [dir1, dir2] of spatialPairs) {
+        // Check if s1 has dir1(A,B) and s2 has dir2(B,A)
+        const pattern1 = new RegExp(dir1.replace('(', '\\(') + '([^,]+),([^)]+)\\)');
+        const pattern2 = new RegExp(dir2.replace('(', '\\(') + '([^,]+),([^)]+)\\)');
+        
+        const match1 = s1.match(pattern1);
+        const match2 = s2.match(pattern2);
+        
+        if (match1 && match2) {
+          // Check if arguments are swapped
+          if (match1[1] === match2[2] && match1[2] === match2[1]) {
+            return true;
+          }
+        }
+        
+        // Check reverse
+        const match1r = s2.match(pattern1);
+        const match2r = s1.match(pattern2);
+        
+        if (match1r && match2r) {
+          if (match1r[1] === match2r[2] && match1r[2] === match2r[1]) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    },
+
+    // Check if multi-relation compounds are inverses
+    areMultiRelationInverses(s1, s2) {
+      // Check for compound relations like "west(A,B)∧south(A,C)" vs "east(B,A)∧north(C,A)"
+      if (s1.includes('∧') && s2.includes('∧')) {
+        const parts1 = s1.split('∧').map(p => p.trim());
+        const parts2 = s2.split('∧').map(p => p.trim());
+        
+        if (parts1.length === 2 && parts2.length === 2) {
+          // Check if both parts are spatial inverses
+          return this.areSpatialInverses(parts1[0], parts2[0]) && 
+                 this.areSpatialInverses(parts1[1], parts2[1]);
+        }
+      }
+      
+      return false;
+    },
+
+    // Check logical equivalences
+    areLogicallyEquivalent(s1, s2) {
+      const patterns = [
+        // Contrapositive
+        ['(p→q)', '(¬q→¬p)'],
+        // Commutative
+        ['(p∧q)', '(q∧p)'],
+        ['(p∨q)', '(q∨p)'],
+        // De Morgan
+        ['¬(p∧q)', '(¬p∨¬q)'],
+        ['¬(p∨q)', '(¬p∧¬q)'],
+        // Double negation
+        ['¬¬p', 'p']
+      ];
+      
+      for (const [pat1, pat2] of patterns) {
+        if ((s1.includes(pat1) && s2.includes(pat2)) ||
+            (s1.includes(pat2) && s2.includes(pat1))) {
+          return true;
+        }
+      }
+      
+      return false;
+    },
+
+    // Find all types with equivalent structures
+    findEquivalentTypes(targetStructure) {
+      const equivalentTypes = [];
+      
+      for (const [typeId, generator] of Object.entries(reasoningGenerators)) {
+        try {
+          const sample = generator();
+          if (this.areEquivalent(sample.structure, targetStructure)) {
+            equivalentTypes.push(parseInt(typeId));
+          }
+        } catch(e) {
+          console.warn(`Error checking type ${typeId}:`, e);
+        }
+      }
+      
+      return equivalentTypes;
     }
   };
 
-  // Session state
+  // PCG32 random number generator for reproducible randomness
+  function pcg32(seed) {
+    let state = BigInt(seed || 12345);
+    const multiplier = 6364136223846793005n;
+    const increment = 1442695040888963407n;
+    const modulus = 2n ** 64n;
+
+    return function() {
+      const xorshifted = Number(((state >> 18n) ^ state) >> 27n);
+      const rot = Number(state >> 59n);
+      state = (state * multiplier + increment) % modulus;
+      const result = (xorshifted >>> rot) | (xorshifted << (32 - rot));
+      return (result >>> 0) / 4294967296;
+    };
+  }
+
+  // Game state
   const state = {
+    running: false,
     n: 2,
     secondsPerTrial: 10,
     premisesPerTrial: 1,
-    trials: 30,
-    matchRate: 0.25,
-    running: false,
+    trials: 10,
+    matchRate: 50,
     currentTrial: 0,
-    score: 0,
-    hits: 0,
-    misses: 0,
-    responses: 0,
-    omissions: 0,
-    schedule: [],
     history: [],
+    schedule: [],
     timer: null,
     timerBar: null,
-    familyFreq: Array(63).fill(0), // index 1-62
+    responses: 0,
+    hits: 0,
+    misses: 0,
+    omissions: 0,
+    score: 0,
+    log: [],
+    crossTypeEnabled: true,
+    useWalkthrough: false,
+    
+    // Advanced tracking
+    familyFreq: {},
+    recentWindow: [],
+    pairCount: Array(63).fill(null).map(() => ({})),
+    theta: 0,
     lastFamily: 0,
-    pairCount: Array(63).fill().map(() => Array(63).fill(0)), // pairwise counts
-    recentWindow: [], // sliding window for diversity
-    theta: Array(62).fill(0.5), // IRT parameters placeholder
-    atNback: 0, // family n-back
-    stream: [], // family sequence for spectral analysis
-    pairwiseTargets: Array(63).fill().map(() => Array(63).fill(1)) // target pair counts
+    atNback: 0,
+    stream: []
   };
 
-  // PCG32 random number generator
-  function pcg32(seed){let state=(seed>>>0)+0x853c49e6748fea9bn,inc=0xda3e39cb94b95bdbn;return ()=>{state=state*6364136223846793005n+inc&((1n<<128n)-1n);let x=((state>>64n)^state)>>64n;let rot=state>>122n;let r=(Number((x>>rot)|(x<<(64n-rot)))>>>0)/4294967296;return r}}
-
-  // Sample from weighted distribution
-  function sampleWeighted(weights, seed) {
-    const r = pcg32(seed);
-    const total = weights.reduce((a, b) => a + b, 0);
-    let cum = 0;
-    const rand = r() * total;
-    for (let i = 0; i < weights.length; i++) {
-      cum += weights[i];
-      if (rand < cum) return i + 1; // families 1-62
-    }
-    return 1;
-  }
-
-  // Argmax helper
-  function argmax(arr) {
-    let maxIdx = 0;
-    for (let i = 1; i < arr.length; i++) {
-      if (arr[i] > arr[maxIdx]) maxIdx = i;
-    }
-    return maxIdx;
-  }
-
-  // Helper functions
-  function infoGain(f, theta) {
-    // Fisher information for IRT: higher when theta_f is near 0.5
-    const t = theta[f-1];
-    const p = 1 / (1 + Math.exp(-t)); // logistic
-    return p * (1 - p); // Fisher info for 1PL model
-  }
-  function klDivergence(p, q) { return p.reduce((sum, pi, i) => sum + pi * Math.log(pi / q[i] || 1e-6), 0); }
-  const uniformDist = Array(62).fill(1/62);
-
-  // 22. Fairness with slack
-  function fairnessWithSlack(freq) {
-    // Minimize max deviation |p_f - 1/62|
-    // Simple projection: adjust weights to reduce max deviation
-    const n = 62, target = 1/n;
-    const current = freq.slice(1, 63).map(f => f / Math.max(1, freq.reduce((a,b)=>a+b,0))); // empirical probs
-    const deviations = current.map(p => Math.abs(p - target));
-    const maxDev = Math.max(...deviations);
-    if (maxDev < 0.01) return Array(n).fill(1); // already fair
-    // Project by scaling down over-represented
-    const weights = current.map(p => p > target ? Math.max(0.1, 1 - (p - target)/maxDev) : 1 + (target - p)/maxDev);
-    return weights;
-  }
-
-  // 21. Spectral anti-periodicity
-  function spectralAntiPeriodicity(stream) {
-    // Simple approximation: penalize families that would create low-frequency patterns
-    const n = 62, weights = Array(n).fill(1);
-    if (stream.length < 10) return weights;
-    // Check for periodicity by counting repeats at lags
-    for (let lag = 1; lag <= 5; lag++) {
-      let penalty = 0;
-      for (let i = lag; i < stream.length; i++) {
-        if (stream[i] === stream[i - lag]) penalty++;
-      }
-      penalty /= stream.length;
-      // Penalize families that match recent patterns
-      const recent = stream.slice(-lag);
-      for (let f = 0; f < n; f++) {
-        if (recent.includes(f+1)) weights[f] *= (1 - penalty);
-      }
-    }
-    return weights;
-  }
-
-  // 23. De-Finetti mixing
-  function deFinettiMixing(alpha, uniform) {
-    // Simple mixing: blend uniform with random noise
-    const n = 62;
-    const noise = Array(n).fill().map(() => Math.random() * 0.1 - 0.05); // small random
-    return uniform.map((u, i) => Math.max(0.01, u + alpha * noise[i]));
-  }
-
-  // 14. Low-discrepancy simplex sampling
-  function lowDiscrepancySimplex(seed, t) {
-    // Simple Halton-like sequence for simplex
-    const n = 62, probs = Array(n).fill(0);
-    // Use radical inverse for base 2
-    let x = t * seed;
-    for (let i = 0; i < n; i++) {
-      x = (x * 16807) % 2147483647; // LCG
-      probs[i] = x / 2147483647;
-    }
-    // Normalize to simplex
-    const sum = probs.reduce((a,b)=>a+b,0);
-    return probs.map(p => p / sum);
-  }
-
-  // 20. Program-repair falsifiers
-  function programRepairFalsifiers(family) {
-    // Generate falsified versions of the family
-    const variants = reasoningGenerators[family]().premise;
-    // Simple edits: negate, swap quantifiers, etc.
-    const falsifiers = [
-      variants.replace(/All/g, 'Some').replace(/Some/g, 'No'),
-      variants.replace(/implies/g, 'does not imply'),
-      variants.replace(/and/g, 'or')
-    ];
-    // Map to other families (simplified)
-    return [rand(1,62), rand(1,62), rand(1,62)];
-  }
-
-  // 18. SMT-constrained scheduler
-  function smtScheduler(constraints, score) {
-    // Encode constraints in SMT, solve for next f
-    // Use Z3-like logic (placeholder: simple constraint check)
-    let f;
-    do {
-      f = rand(1,62);
-    } while (constraints.some(c => !c(f))); // assume constraints are functions
-    return f;
-  }
-
-  // 19. Category-theoretic typing
-  function categoryTyping(typeA, typeB) {
-    // Check morphism composition A→B
-    return typeA.out === typeB.in;
-  }
-
-  // 17. Hypergraph t-wise coverage
-  function hypergraphCoverage(hypergraph, recent) {
-    // Maintain 3-uniform hypergraph
-    // Pick f that maximizes uncovered triples
-    return argmax(hypergraph.map((_, i) => 1 / (1 + recent.filter(r => r === i+1).length)));
-  }
-
-  // 16. Learned DPP kernel
-  function learnedDPPKernel(features, recent) {
-    // Embed features, compute K=ΦΦᵀ
-    // Sample with k-DPP
-    return argmax(features.map((_, i) => 1 / (1 + recent.filter(r => r === i+1).length)));
-  }
-
-  // 15. Entropy-regularized bandit
-  function entropyRegularizedBandit(theta, freq, recent, lambda, mu) {
-    // argmax I_f(θ) - λ·KL(p̂‖u) - μ·run_penalty(f)
-    const scores = Array(62).fill(0);
-    for (let f = 0; f < 62; f++) {
-      scores[f] = infoGain(f, theta) - lambda * klDivergence(freq, uniformDist) - mu * (recent.includes(f+1) ? 1 : 0);
-    }
-    return argmax(scores) + 1;
-  }
-
-  // 13. Optimal-transport balancing (Sinkhorn)
-  function optimalTransportPlan(empirical, uniform) {
-    // Compute OT plan π mapping p̂ to u
-    // Return π row for current state
-    return uniform.map((u, i) => u * (empirical[i] > 0 ? 1 : 0)); // simplified
-  }
-
-  // 12. Online convex optimization
-  function onlineConvexOpt(pairTargets, pairCount) {
-    // argmin ⟨∇L_t, e_g⟩
-    return argmax(pairTargets.map((row, i) => row.reduce((a,b)=>a+b,0) - pairCount[i].reduce((a,b)=>a+b,0)));
-  }
-
-  // 25. Mutual-information design
-  function mutualInfoDesign(family, response, theta) {
-    // Maximize MI(family; response | θ) - diversity penalty
-    return infoGain(family, theta);
-  }
-
-  // 26. Quorum windows
-  function quorumWindows(window) {
-    // Check distinct families in windows
-    return new Set(window).size >= Math.min(31, window.length);
-  }
-
-  // 27. Regret-aware rollback
-  function regretAwareRollback(metrics, thresholds) {
-    // Check metrics, rollback if needed
-    return metrics.some(m => m > thresholds);
-  }
-
-  // Integrated selector with all 15 upgrades
-  function selectNextFamily(state) {
-    const {freq, recent, pairCount, theta, seed, last, atNback, stream} = state;
-    // 1) base weights from optimal-transport or fairness
-    let w = fairnessWithSlack(freq); // close to uniform
-    // 2) diversity repulsion (DPP-lite): downweight families similar to recent
-    for (const f of recent) w[f-1] *= 0.01;
-    // 3) info bonus
-    for (let f = 0; f < 62; f++) w[f] *= 1 + infoGain(f+1, theta);
-    // 4) pair/triple coverage bonus
-    const lastIdx = last - 1;
-    for (let g = 0; g < 62; g++) if (g !== lastIdx) w[g] *= 1 / (1 + pairCount[last][g+1]);
-    // 5) hard constraints
-    if (last > 0) w[lastIdx] = 0; if (state.n > 0 && atNback > 0) w[atNback - 1] = 0;
-    // Additional upgrades
-    // 6) Spectral anti-periodicity
-    w = w.map((wi, i) => wi * spectralAntiPeriodicity(stream)[i]);
-    // 7) De-Finetti mixing
-    w = w.map((wi, i) => wi * deFinettiMixing(1, uniformDist)[i]);
-    // 8) Online convex opt
-    w[onlineConvexOpt(state.pairwiseTargets, pairCount) - 1] *= 2;
-    // 9) Mutual info
-    for (let f = 0; f < 62; f++) w[f] *= mutualInfoDesign(f+1, null, theta);
-    // 10) Quorum check
-    if (!quorumWindows(recent)) w = w.map(wi => wi * 0.5);
-    // 11) Regret rollback
-    if (regretAwareRollback([klDivergence(freq, uniformDist)], [0.02])) {
-      // rollback: not implemented, placeholder
-    }
-    return sampleWeightedSoftmax(w, seed);
-  }
-
-  function sampleWeightedSoftmax(weights, seed) {
-    const expW = weights.map(w => Math.exp(w));
-    const sum = expW.reduce((a,b)=>a+b,0);
-    const probs = expW.map(e => e / sum);
-    let cum = 0;
-    const rand = Math.random();
-    for (let i = 0; i < probs.length; i++) {
-      cum += probs[i];
-      if (rand < cum) return i + 1;
-    }
-    return 1;
-  }
-    return 1;
-  }
+  // 10-Trial Walkthrough Test Configuration
+  const walkthroughTrials = [
+    { typeId: 49, structure: 'north(A,B)', shouldMatch: false }, // Trial 1: D north of J
+    { typeId: 53, structure: 'west(A,B)∧south(A,C)', shouldMatch: false }, // Trial 2: Z west of X; Z south of Y
+    { typeId: 50, structure: 'south(A,B)', shouldMatch: true }, // Trial 3: J south of D (matches Trial 1 inverse)
+    { typeId: 54, structure: 'east(A,B)∧north(C,B)', shouldMatch: true }, // Trial 4: X east of Z; Y north of Z (matches Trial 2 inverse)
+    { typeId: 51, structure: 'east(A,B)', shouldMatch: false }, // Trial 5: D east of J
+    { typeId: 53, structure: 'west(A,B)∧south(A,C)', shouldMatch: true }, // Trial 6: Same as Trial 2 structure
+    { typeId: 52, structure: 'west(A,B)', shouldMatch: true }, // Trial 7: J west of D (matches Trial 5 inverse)
+    { typeId: 51, structure: 'east(A,B)', shouldMatch: false }, // Trial 8: X east of Z (single relation)
+    { typeId: 51, structure: 'east(A,B)', shouldMatch: true }, // Trial 9: D east of J (matches Trial 7's inverse)
+    { typeId: 52, structure: 'west(A,B)', shouldMatch: true } // Trial 10: Z west of X (matches Trial 8 inverse)
+  ];
 
   // Generate unique premise
-  function generateUniquePremise(typeId = null) {
-    const maxAttempts = 100;
-    for(let i = 0; i < maxAttempts; i++) {
-      const id = typeId || rand(1, 62);
-      const generator = reasoningGenerators[id];
-      if(!generator) continue;
+  function generateUniquePremise(typeId, allowCrossType = true) {
+    const maxAttempts = 50;
+    let seed = Date.now() + state.currentTrial * 1000;
+    
+    for(let attempt = 0; attempt < maxAttempts; attempt++) {
+      const r = pcg32(seed + attempt);
       
-      const result = generator();
-      result.typeId = id;
+      let selectedType = typeId;
       
-      // Ensure uniqueness
-      if(!usedPremises.has(result.premise)) {
+      // Allow cross-type selection if enabled
+      if (allowCrossType && state.crossTypeEnabled && r() < 0.4) {
+        const targetStructure = reasoningGenerators[typeId]().structure;
+        const equivalentTypes = structureEquivalence.findEquivalentTypes(targetStructure);
+        if (equivalentTypes.length > 1) {
+          // Select a different but equivalent type
+          const otherTypes = equivalentTypes.filter(t => t !== typeId);
+          if (otherTypes.length > 0) {
+            selectedType = choice(otherTypes);
+          }
+        }
+      }
+      
+      const result = reasoningGenerators[selectedType]();
+      
+      if (!usedPremises.has(result.premise)) {
         usedPremises.add(result.premise);
+        result.originalTypeId = typeId;
+        result.actualTypeId = selectedType;
+        result.isCrossType = selectedType !== typeId;
         return result;
       }
     }
-    // Fallback with timestamp
+    
+    // Fallback
     const id = typeId || rand(1, 62);
     const result = reasoningGenerators[id]();
     result.typeId = id;
@@ -2908,37 +1455,54 @@ function extractPremiseLines(rawListOrSelector){
     return result;
   }
 
-  // Generate multiple premises for a trial
+  // Generate trial premises with structural matching
   function generateTrialPremises(count, matchData = null) {
     const premises = [];
 
-    if(matchData) {
-      // Generate matching logical structures
+    if (state.useWalkthrough && state.currentTrial < walkthroughTrials.length) {
+      // Use predefined walkthrough trial
+      const trialConfig = walkthroughTrials[state.currentTrial];
+      const premise = generateUniquePremise(trialConfig.typeId, false);
+      premise.structure = trialConfig.structure;
+      premise.shouldMatch = trialConfig.shouldMatch;
+      premises.push(premise);
+      return premises;
+    }
+
+    if (matchData && matchData.length > 0) {
+      // Generate structurally matching premises
       for(let i = 0; i < count; i++) {
-        const typeId = matchData[i % matchData.length].typeId;
-        premises.push(generateUniquePremise(typeId));
+        const targetData = matchData[i % matchData.length];
+        const targetStructure = targetData.structure;
+        
+        if (state.crossTypeEnabled) {
+          // Find all types with equivalent structures
+          const equivalentTypes = structureEquivalence.findEquivalentTypes(targetStructure);
+          
+          if (equivalentTypes.length > 0) {
+            // Prefer cross-type matches for variety
+            const otherTypes = equivalentTypes.filter(t => t !== targetData.typeId);
+            const selectedTypeId = otherTypes.length > 0 ? choice(otherTypes) : choice(equivalentTypes);
+            
+            const premise = generateUniquePremise(selectedTypeId, false);
+            premise.isStructuralMatch = true;
+            premise.matchedStructure = targetStructure;
+            premise.crossTypeMatch = selectedTypeId !== targetData.typeId;
+            premises.push(premise);
+          } else {
+            // Fallback to same type
+            premises.push(generateUniquePremise(targetData.typeId, false));
+          }
+        } else {
+          // Same-type matching only
+          premises.push(generateUniquePremise(targetData.typeId, false));
+        }
       }
     } else {
-      // Generate new premises with advanced family selection
+      // Generate new random premises
       for(let i = 0; i < count; i++) {
-        const selectedTypeId = selectNextFamily({
-          freq: state.familyFreq,
-          recent: state.recentWindow,
-          pairCount: state.pairCount,
-          theta: state.theta,
-          seed: (seed + state.currentTrial * 991 + i * 31337) >>> 0,
-          last: state.lastFamily,
-          atNback: state.atNback,
-          stream: state.stream
-        });
-        state.pairCount[state.lastFamily][selectedTypeId]++;
-        state.lastFamily = selectedTypeId;
-        state.familyFreq[selectedTypeId]++;
-        state.recentWindow.push(selectedTypeId);
-        if (state.recentWindow.length > 10) state.recentWindow.shift(); // sliding window
-        state.stream.push(selectedTypeId);
-        state.atNback = state.stream[state.stream.length - state.n] || 0;
-        premises.push(generateUniquePremise(selectedTypeId, false)); // no invert, selected type
+        const typeId = rand(1, 62);
+        premises.push(generateUniquePremise(typeId, state.crossTypeEnabled));
       }
     }
 
@@ -2948,46 +1512,78 @@ function extractPremiseLines(rawListOrSelector){
   // Build match schedule
   function buildSchedule(n, trials, matchRate) {
     const schedule = new Array(trials).fill(false);
-    for(let i = n; i < trials; i++) {
-      schedule[i] = Math.random() < matchRate;
+    
+    if (state.useWalkthrough) {
+      // Use predefined walkthrough matches
+      return [false, false, true, true, false, true, true, false, true, true];
     }
+    
+    const targetMatches = Math.floor(trials * (matchRate / 100));
+    let matchCount = 0;
+    
+    // Place matches starting from trial n
+    for(let i = n; i < trials && matchCount < targetMatches; i++) {
+      if(Math.random() < (targetMatches - matchCount) / (trials - i)) {
+        schedule[i] = true;
+        matchCount++;
+      }
+    }
+    
     return schedule;
   }
 
-  // Update UI statistics
+  // UI update functions
   function updateStats() {
+    const accuracy = state.responses > 0 
+      ? ((state.hits / state.responses) * 100).toFixed(1) 
+      : '—';
+    
     $('#kTrial').textContent = state.currentTrial;
     $('#kScore').textContent = state.score;
+    $('#kAcc').textContent = accuracy + (state.responses > 0 ? '%' : '');
     $('#kHits').textContent = state.hits;
     $('#kMisses').textContent = state.misses;
     $('#kOmit').textContent = state.omissions;
-    
-    const accuracy = state.responses > 0 
-      ? Math.round(100 * state.hits / state.responses) + '%' 
-      : '—';
-    $('#kAcc').textContent = accuracy;
   }
 
-  // Add log entry
   function addLog(message) {
-    const log = $('#log');
-    const time = new Date().toLocaleTimeString();
-    const entry = document.createElement('div');
-    entry.textContent = `[${time}] ${message}`;
-    log.insertBefore(entry, log.firstChild);
-    
-    // Keep log size manageable
-    while(log.children.length > 50) {
-      log.removeChild(log.lastChild);
+    state.log.push(`[${new Date().toLocaleTimeString()}] ${message}`);
+    const logEl = $('#log');
+    if(logEl) {
+      const entry = document.createElement('div');
+      entry.textContent = message;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
     }
+  }
+
+  function updateStructureInfo(trialData) {
+    const infoEl = $('#structureInfo');
+    if (!infoEl) return;
+    
+    const current = trialData[0];
+    let info = `Current: Type ${current.actualTypeId || current.typeId} - ${current.structure}`;
+    
+    if (state.currentTrial >= state.n) {
+      const nBackData = state.history[state.currentTrial - state.n][0];
+      info += ` | N-back: Type ${nBackData.actualTypeId || nBackData.typeId} - ${nBackData.structure}`;
+      
+      const isMatch = structureEquivalence.areEquivalent(current.structure, nBackData.structure);
+      if (isMatch) {
+        info += ' <span style="color:#2ecc71">✓ STRUCTURAL MATCH</span>';
+        if (current.crossTypeMatch) {
+          info += ' <span class="match-indicator cross-type">CROSS-TYPE</span>';
+        }
+      }
+    }
+    
+    infoEl.innerHTML = info;
   }
 
   // Present trial
   function presentTrial() {
-    if(!state.running) return;
-    
-    if(state.currentTrial >= state.trials) {
-      stopSession();
+    if(!state.running || state.currentTrial >= state.trials) {
+      endSession();
       return;
     }
 
@@ -2995,14 +1591,21 @@ function extractPremiseLines(rawListOrSelector){
     let trialData;
     
     if(shouldMatch && state.currentTrial >= state.n) {
-      // Generate matching premises based on n-back logical structure
+      // Generate matching premises
       const matchTarget = state.history[state.currentTrial - state.n];
       trialData = generateTrialPremises(state.premisesPerTrial, matchTarget);
-      addLog(`Trial ${state.currentTrial + 1}: N-back MATCH (types: ${trialData.map(d => d.typeId).join(',')})`);
+      
+      // Log match details
+      const crossTypeMatches = trialData.filter(d => d.crossTypeMatch);
+      if (crossTypeMatches.length > 0) {
+        addLog(`Trial ${state.currentTrial + 1}: CROSS-TYPE MATCH - Type ${trialData[0].actualTypeId} matches Type ${matchTarget[0].typeId} (${trialData[0].structure} ≡ ${matchTarget[0].structure})`);
+      } else {
+        addLog(`Trial ${state.currentTrial + 1}: SAME-TYPE MATCH - Type ${trialData[0].typeId} (${trialData[0].structure})`);
+      }
     } else {
-      // Generate new random premises
+      // Generate new premises
       trialData = generateTrialPremises(state.premisesPerTrial);
-      addLog(`Trial ${state.currentTrial + 1}: New premises (types: ${trialData.map(d => d.typeId).join(',')})`);
+      addLog(`Trial ${state.currentTrial + 1}: New - Type ${trialData[0].actualTypeId || trialData[0].typeId} (${trialData[0].structure})`);
     }
     
     state.history.push(trialData);
@@ -3024,16 +1627,32 @@ function extractPremiseLines(rawListOrSelector){
       container.appendChild(div);
     });
 
-    if (window.ImagiVoice && typeof ImagiVoice.speakPremiseList === 'function') {
-      // build TTS lines using only the text spans
-      const lines = extractPremiseLines('#premiseDisplay .premise-text, #premise-display .premise-text');
-      console.debug('TTS lines =', lines);
-      ImagiVoice.speakPremiseList(lines); // pass the array directly
+    // Update structure info
+    updateStructureInfo(trialData);
+
+    // Text-to-speech - Fixed to properly extract and speak premises
+    if (window.ImagiVoice && window.ImagiVoice.hasTTS) {
+      // Extract just the text content from the premises
+      const premiseElements = container.querySelectorAll('.premise-text');
+      const lines = Array.from(premiseElements).map(el => el.textContent || el.innerText || '');
+      
+      console.log('[Game] Attempting to speak premises:', lines);
+      
+      if (lines.length > 0) {
+        window.ImagiVoice.speakPremiseList(lines);
+        // Enable repeat button after speaking
+        const repeatBtn = document.getElementById('repeatBtn');
+        if(repeatBtn) repeatBtn.disabled = false;
+      }
+    } else {
+      console.log('[Game] Voice not available:', {
+        ImagiVoice: window.ImagiVoice,
+        hasTTS: window.ImagiVoice ? window.ImagiVoice.hasTTS : false
+      });
     }
     
     // Update status
-    const types = trialData.map(d => `Type ${d.typeId}`).join(', ');
-    $('#status').textContent = `Trial ${state.currentTrial + 1} of ${state.trials} • ${types} • N-back: ${state.n}`;
+    $('#status').textContent = `Trial ${state.currentTrial + 1} of ${state.trials} • N-back: ${state.n}`;
     
     // Enable response buttons
     $('#btnMatch').disabled = false;
@@ -3046,7 +1665,6 @@ function extractPremiseLines(rawListOrSelector){
   // Timer management
   function startTimer() {
     clearTimeout(state.timer);
-    clearInterval(state.timerBar);
     
     const timerBar = $('#timerBar');
     timerBar.style.width = '100%';
@@ -3091,455 +1709,275 @@ function extractPremiseLines(rawListOrSelector){
     const expected = state.schedule[state.currentTrial];
     const correct = (isMatch === expected);
     
-    state.responses++;
     if(correct) {
-      state.score++;
       state.hits++;
+      state.score += 10;
       $('#status').textContent = '✓ Correct!';
-      $('#status').style.color = 'var(--ok)';
+      addLog(`Trial ${state.currentTrial + 1}: CORRECT (${isMatch ? 'MATCH' : 'NO MATCH'})`);
     } else {
-      state.score--;
       state.misses++;
       $('#status').textContent = '✗ Incorrect';
-      $('#status').style.color = 'var(--warn)';
+      addLog(`Trial ${state.currentTrial + 1}: INCORRECT (expected: ${expected ? 'MATCH' : 'NO MATCH'})`);
     }
     
-    addLog(`Trial ${state.currentTrial + 1}: Response: ${isMatch ? 'MATCH' : 'NO MATCH'}, Expected: ${expected ? 'MATCH' : 'NO MATCH'}, ${correct ? 'CORRECT' : 'INCORRECT'}`);
-    
+    state.responses++;
     $('#btnMatch').disabled = true;
     $('#btnNoMatch').disabled = true;
     
     state.currentTrial++;
     updateStats();
     
-    setTimeout(() => {
-      $('#status').style.color = '';
-      presentTrial();
-    }, 1000);
+    setTimeout(() => presentTrial(), 1000);
   }
 
   // Start session
-  function runSessionSafe() {
-    try {
-      return startSession();
-    } catch(e) {
-      console.error('[diag] runSession error:', e);
-      alert('Start failed: see console');
-    }
-  }
-
-  // Global exposure for onclick
-  window.runSessionSafe = runSessionSafe;
-  }
-
   function startSession() {
-    console.log('[diag] Start click received');
-    if (window.ImagiVoice && typeof ImagiVoice.init === 'function') { ImagiVoice.init(); }
-    if (window.ImagiVoice && typeof ImagiVoice.cancel === 'function') { ImagiVoice.cancel(); }
     // Reset state
     state.running = true;
+    state.n = parseInt($('#nback').value);
+    state.secondsPerTrial = parseFloat($('#sec').value);
+    state.premisesPerTrial = parseInt($('#premises').value);
+    state.trials = parseInt($('#trials').value);
+    state.matchRate = parseInt($('#matchRate').value);
+    state.crossTypeEnabled = $('#crossTypeMatching').checked;
+    state.useWalkthrough = $('#testWalkthrough').checked;
+    
+    if (state.useWalkthrough) {
+      state.trials = 10;
+      state.n = 2;
+      $('#trials').value = 10;
+      $('#trialsV').textContent = 10;
+      $('#nback').value = 2;
+      $('#nbackV').textContent = 2;
+    }
+    
     state.currentTrial = 0;
-    state.score = 0;
+    state.history = [];
+    state.schedule = buildSchedule(state.n, state.trials, state.matchRate);
+    state.responses = 0;
     state.hits = 0;
     state.misses = 0;
-    state.responses = 0;
     state.omissions = 0;
-    state.history = [];
-    state.familyFreq = Array(63).fill(0);
-    state.lastFamily = 0;
-    state.pairCount = Array(63).fill().map(() => Array(63).fill(0));
-    state.recentWindow = [];
-    state.theta = Array(62).fill(0.5);
-    state.atNback = 0;
-    state.stream = [];
-    state.pairwiseTargets = Array(63).fill().map(() => Array(63).fill(1));
+    state.score = 0;
+    state.log = [];
+    
+    // Clear used premises
     usedPremises.clear();
     letterIndex = 0;
-
-    // Build schedule
-    state.schedule = buildSchedule(state.n, state.trials, state.matchRate);
-
-    const matchCount = state.schedule.filter(Boolean).length;
-    addLog(`Session started: ${state.trials} trials, n-back=${state.n}, ${state.premisesPerTrial} premises/trial, ${matchCount} matches scheduled`);
-
-    // Update UI
+    
+    // Reset UI
+    $('#log').innerHTML = '';
+    updateStats();
+    
+    // Update buttons
     $('#start').disabled = true;
     $('#stop').disabled = false;
-    $('#btnMatch').disabled = false;
-    $('#btnNoMatch').disabled = false;
-
-    updateStats();
+    
+    const mode = state.crossTypeEnabled ? 'Cross-Type Matching' : 'Same-Type Only';
+    const walkthrough = state.useWalkthrough ? ' (10-Trial Walkthrough)' : '';
+    addLog(`Session started: ${mode}${walkthrough}, N-back=${state.n}, Trials=${state.trials}`);
+    
+    // Start first trial
     presentTrial();
   }
 
-  // Stop session
-  function stopSession() {
+  // End session
+  function endSession() {
     state.running = false;
     clearTimeout(state.timer);
-    if (window.ImagiVoice && typeof ImagiVoice.cancel === 'function') { ImagiVoice.cancel(); }
-
-    $('#status').textContent = `Session complete! Final score: ${state.score}`;
+    
+    const accuracy = state.responses > 0 
+      ? ((state.hits / state.responses) * 100).toFixed(1)
+      : 0;
+    
+    $('#status').textContent = `Session complete! Score: ${state.score} (${accuracy}% accuracy)`;
+    addLog(`Session ended: Score=${state.score}, Accuracy=${accuracy}%`);
+    
     $('#start').disabled = false;
     $('#stop').disabled = true;
     $('#btnMatch').disabled = true;
     $('#btnNoMatch').disabled = true;
     
-    addLog(`Session ended: Score=${state.score}, Accuracy=${state.hits}/${state.responses}, Omissions=${state.omissions}`);
+    // Disable repeat button
+    const repeatBtn = document.getElementById('repeatBtn');
+    if(repeatBtn) repeatBtn.disabled = true;
   }
 
-  // Export log
+  // Export session log
   function exportLog() {
-    const logData = state.history.map((trial, index) => {
-      const types = trial.map(p => p.typeId).join(',');
-      const structures = trial.map(p => p.structure).join(' | ');
-      const premises = trial.map(p => p.premise).join(' || ');
-      return `${index + 1}\t${types}\t${structures}\t${premises}`;
-    });
-    
-    const header = 'Trial\tTypes\tStructures\tPremises';
-    const content = [header, ...logData].join('\n');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `imagi-world-session-${timestamp}.txt`;
+    const content = [
+      'Imagi-World Session Log',
+      '=' .repeat(50),
+      `Date: ${new Date().toLocaleString()}`,
+      `Configuration:`,
+      `  N-back: ${state.n}`,
+      `  Trials: ${state.trials}`,
+      `  Match Rate: ${state.matchRate}%`,
+      `  Cross-Type Matching: ${state.crossTypeEnabled}`,
+      `  Walkthrough Test: ${state.useWalkthrough}`,
+      '',
+      'Session Log:',
+      '-'.repeat(50),
+      ...state.log,
+      '',
+      'Final Statistics:',
+      '-'.repeat(50),
+      `  Score: ${state.score}`,
+      `  Accuracy: ${state.responses > 0 ? ((state.hits / state.responses) * 100).toFixed(1) : 0}%`,
+      `  Hits: ${state.hits}`,
+      `  Misses: ${state.misses}`,
+      `  Omissions: ${state.omissions}`
+    ].join('\n');
     
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `imagi-world-log-${new Date().toISOString()}.txt`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  // Wire up controls
-  $('#nback').addEventListener('input', e => {
-    state.n = parseInt(e.target.value);
-    $('#nbackV').textContent = state.n;
-  });
-
-  $('#sec').addEventListener('input', e => {
-    state.secondsPerTrial = parseFloat(e.target.value);
-    $('#secV').textContent = state.secondsPerTrial;
-    $('#secNum').value = state.secondsPerTrial;
-  });
-
-  $('#secNum').addEventListener('input', e => {
-    state.secondsPerTrial = parseFloat(e.target.value);
-    $('#secV').textContent = state.secondsPerTrial;
-    $('#sec').value = state.secondsPerTrial;
-  });
-
-  $('#premises').addEventListener('input', e => {
-    state.premisesPerTrial = parseInt(e.target.value);
-    $('#premisesV').textContent = state.premisesPerTrial;
-    $('#premisesNum').value = state.premisesPerTrial;
-  });
-
-  $('#premisesNum').addEventListener('input', e => {
-    state.premisesPerTrial = parseInt(e.target.value);
-    $('#premisesV').textContent = state.premisesPerTrial;
-    $('#premises').value = state.premisesPerTrial;
-  });
-
-  $('#trials').addEventListener('input', e => {
-    state.trials = parseInt(e.target.value);
-    $('#trialsV').textContent = state.trials;
-    $('#trialsNum').value = state.trials;
-  });
-
-  $('#trialsNum').addEventListener('input', e => {
-    state.trials = parseInt(e.target.value);
-    $('#trialsV').textContent = state.trials;
-    $('#trials').value = state.trials;
-  });
-
-  $('#matchRate').addEventListener('input', e => {
-    state.matchRate = parseInt(e.target.value) / 100;
-    $('#matchRateV').textContent = e.target.value;
-  });
-
-  // Temporary diagnostics
-  console.log('[diag] script loaded');
-
-  // Immediate binding since script is at end of body
-  const btn = document.getElementById('start') || document.querySelector('[data-start]');
-  if (!btn) {
-    console.error('[diag] Start button not found');
-  } else {
-    console.log('[diag] Start button found');
-    btn.removeAttribute('disabled');
-    if (!btn.dataset.bound) {
-      btn.dataset.bound = '1';
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('[diag] Start clicked');
-        runSessionSafe();
-      }, { once: false });
-    }
-  }
-  $('#stop').addEventListener('click', stopSession);
-  $('#reset').addEventListener('click', () => {
-    state.score = 0;
-    state.hits = 0;
-    state.misses = 0;
-    state.responses = 0;
-    state.omissions = 0;
-    updateStats();
-    addLog('Statistics reset');
-  });
-  $('#download').addEventListener('click', exportLog);
-
-  $('#btnMatch').addEventListener('click', () => handleResponse(true));
-  $('#btnNoMatch').addEventListener('click', () => handleResponse(false));
-
-  // Keyboard shortcuts
-  document.addEventListener('keydown', e => {
-    if(!state.running) return;
+  // Bind UI controls
+  function bindControls() {
+    // Sliders
+    $('#nback').addEventListener('input', e => {
+      $('#nbackV').textContent = e.target.value;
+      state.n = parseInt(e.target.value);
+    });
     
-    if(e.code === 'ArrowLeft' || e.code === 'KeyA') {
-      e.preventDefault();
-      if(!$('#btnMatch').disabled) handleResponse(true);
-    }
-    if(e.code === 'ArrowRight' || e.code === 'KeyD') {
-      e.preventDefault();
-      if(!$('#btnNoMatch').disabled) handleResponse(false);
-    }
-  });
+    $('#sec').addEventListener('input', e => {
+      $('#secV').textContent = e.target.value;
+      $('#secNum').value = e.target.value;
+      state.secondsPerTrial = parseFloat(e.target.value);
+    });
+    
+    $('#secNum').addEventListener('input', e => {
+      $('#sec').value = e.target.value;
+      $('#secV').textContent = e.target.value;
+      state.secondsPerTrial = parseFloat(e.target.value);
+    });
+    
+    $('#premises').addEventListener('input', e => {
+      $('#premisesV').textContent = e.target.value;
+      $('#premisesNum').value = e.target.value;
+      state.premisesPerTrial = parseInt(e.target.value);
+    });
+    
+    $('#premisesNum').addEventListener('input', e => {
+      $('#premises').value = e.target.value;
+      $('#premisesV').textContent = e.target.value;
+      state.premisesPerTrial = parseInt(e.target.value);
+    });
+    
+    $('#trials').addEventListener('input', e => {
+      $('#trialsV').textContent = e.target.value;
+      $('#trialsNum').value = e.target.value;
+      state.trials = parseInt(e.target.value);
+    });
+    
+    $('#trialsNum').addEventListener('input', e => {
+      $('#trials').value = e.target.value;
+      $('#trialsV').textContent = e.target.value;
+      state.trials = parseInt(e.target.value);
+    });
+    
+    $('#matchRate').addEventListener('input', e => {
+      $('#matchRateV').textContent = e.target.value;
+      state.matchRate = parseInt(e.target.value);
+    });
+    
+    // Checkboxes
+    $('#crossTypeMatching').addEventListener('change', e => {
+      state.crossTypeEnabled = e.target.checked;
+    });
+    
+    $('#testWalkthrough').addEventListener('change', e => {
+      state.useWalkthrough = e.target.checked;
+      if (e.target.checked) {
+        $('#trials').value = 10;
+        $('#trialsV').textContent = 10;
+        $('#nback').value = 2;
+        $('#nbackV').textContent = 2;
+        $('#matchRate').value = 50;
+        $('#matchRateV').textContent = 50;
+      }
+    });
+    
+    // Buttons
+    $('#start').addEventListener('click', startSession);
+    $('#stop').addEventListener('click', endSession);
+    $('#reset').addEventListener('click', () => {
+      state.score = 0;
+      state.hits = 0;
+      state.misses = 0;
+      state.omissions = 0;
+      state.responses = 0;
+      updateStats();
+      addLog('Statistics reset');
+    });
+    
+    $('#btnMatch').addEventListener('click', () => handleResponse(true));
+    $('#btnNoMatch').addEventListener('click', () => handleResponse(false));
+    $('#download').addEventListener('click', exportLog);
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if(!state.running) return;
+      if(e.key === '1' || e.key === 'm' || e.key === 'M') {
+        if(!$('#btnMatch').disabled) handleResponse(true);
+      } else if(e.key === '2' || e.key === 'n' || e.key === 'N') {
+        if(!$('#btnNoMatch').disabled) handleResponse(false);
+      }
+    });
+  }
 
   // Initialize
-  updateStats();
-  addLog('Imagi-World 2.0 initialized with 62 reasoning types');
+  function init() {
+    bindControls();
+    updateStats();
+    addLog('System initialized with cross-type structural matching enabled.');
+    
+    // Initialize and test voice system
+    if(window.ImagiVoice && typeof window.ImagiVoice.init === 'function') {
+      window.ImagiVoice.init();
+      
+      // Test voice availability
+      setTimeout(() => {
+        if(window.ImagiVoice.hasTTS) {
+          addLog('Voice system: Available and ready');
+          console.log('[Game] Voice system initialized successfully');
+        } else {
+          addLog('Voice system: Not available (text-to-speech may be disabled in browser)');
+          console.log('[Game] Voice system not available');
+        }
+      }, 500);
+    } else {
+      addLog('Voice system: Module not loaded');
+      console.error('[Game] ImagiVoice module not found on window object');
+    }
+  }
+
+  // Safe session runner
+  window.runSessionSafe = function() {
+    try {
+      startSession();
+    } catch(error) {
+      console.error('Session error:', error);
+      addLog(`Error: ${error.message}`);
+      endSession();
+    }
+  };
+
+  // Initialize on DOM ready
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
-</script>
-<script>
-/* ===== Deterministic RNG (PCG32 + SplitMix) ===== */
-function splitmix32(a){return function(){a|=0;a=a+0x9e3779b9|0;let t=a^a>>>16;t=Math.imul(t,0x21f0aaad);t=t^t>>>15;t=Math.imul(t,0x735a2d97);return ((t=t^t>>>15)>>>0)/4294967296}}
-function pcg32(seed){let state=(seed>>>0)+0x853c49e6748fea9bn,inc=0xda3e39cb94b95bdbn;
-return ()=>{state=state*6364136223846793005n+inc&((1n<<128n)-1n);let x=((state>>64n)^state)>>64n;let rot=state>>122n;let r=(Number((x>>rot)|(x<<(64n-rot)))>>>0)/4294967296;return r}}
-function rngInts(r,n,a=0,b=1<<30){const out=[];for(let i=0;i<n;i++)out.push(a+Math.floor(r()*(b-a)));return out}
-
-/* ===== Tokenizer and constraints ===== */
-const BAN=/\b(about|opposite|exactly|around|approx|roughly|similar)\b/i;
-function tokens(s){return (s||"").normalize("NFKC").replace(/[^\p{L}\p{N}A-Z\s-]/gu," ").replace(/-/g," ").trim().split(/\s+/).filter(Boolean)}
-function within7(s){return tokens(s).length<=7}
-function sanitizeSurface(s){
-  return String(s).replace(/\bopposite\b/gi,"inverted").replace(/\babout\b/gi,"").replace(/≥\s*(\d+)/g,"at-least $1").replace(/\s+/g," ").trim()
-}
-function stripNumberPrefixes(s){
-  return String(s)
-    .replace(/^\s*Item\s*\d+\s*[:.)-]\s*/i,"")
-    .replace(/^\s*(?:\d+\s*[.)-]\s*|\(\d+\)\s*|#\d+\s*|\d+\.\s*)/,"")
-    .trim()
-}
-
-/* ===== Variability knobs (9 axes) ===== */
-const KNOB_DEFAULTS={structure:.5,drift:.5,polarity:.5,arity:.5,operator:.5,distractors:.5,wm:.5,noise:.5,curriculum:.5};
-function mix(...xs){return xs.reduce((a,b)=>a+b,0)/xs.length}
-
-/* ===== Family registry bootstrap =====
-   Build 62 families programmatically by generalizing existing patterns found in the page.
-   Strategy:
-   - Scrape any seed examples already present in the code/DOM.
-   - Expand each into ≥12 templates via controlled transforms:
-     polarity flips, quantifier drift, arity lift, operator substitution, order/comparatives, set membership, xor/biconditional, monotonicity, parity/modular, graph reachability, function composition.
-   - Normalize into {id, tags, templates[], laws[], falsifiers[]}.
-*/
-function harvestSeeds(){
-  // Look for any inline examples or existing generator lists in the app; fall back to a minimal seed set.
-  const seed = [];
-  document.querySelectorAll('[data-seed-premise]').forEach(el=>seed.push(el.textContent.trim()));
-  if(seed.length<20){
-    seed.push(
-      "If A then B", "A; therefore B",
-      "All X are Y", "Some X are Y",
-      "No X are Y", "Either A or B", "A iff B",
-      "If C then not D", "At-least 2 X map-to Y",
-      "A precedes B", "A subset-of B", "A inverted B"
-    );
-  }
-  return seed;
-}
-function slug(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"")}
-function expandTemplates(base){
-  const out=new Set();
-  const ops=[
-    s=>s.replace(/\bif ([A-Z]) then ([A-Z])\b/i,(_,a,b)=>`${a} implies ${b}`),
-    s=>s.replace(/\biff\b/i,"if-and-only-if"),
-    s=>s.replace(/\bSome\b/i,"All").replace(/\bAll\b/i,"Some"),
-    s=>s.replace(/\bNo\b/i,"None"),
-    s=>s.replace(/\bA\b/g,"M").replace(/\bB\b/g,"N").replace(/\bC\b/g,"P"),
-    s=>s.replace(/\bor\b/i,"xor"),
-    s=>s.replace(/\bsubset[- ]of\b/i,"subset"),
-    s=>s.replace(/\bprecedes\b/i,"before"),
-    s=>`inverted ${s}`,
-  ];
-  for(const b of base){
-    out.add(b);
-    for(const f of ops){ out.add(f(b)); }
-  }
-  return Array.from(out).map(sanitizeSurface).filter(within7).slice(0,24);
-}
-function makeFamilies(){
-  const seeds=harvestSeeds();
-  // Create 62 buckets by tagging themes; reuse and mutate templates to reach coverage.
-  const THEMES=[
-    "modus_ponens","modus_tollens","hypothetical_syllogism","disjunction","exclusive_or","biconditional",
-    "quantifiers_some","quantifiers_all","quantifiers_none","quantifier_drift","de_morgan",
-    "contrapositive","double_negation","comparison_order","graph_reachability","set_membership",
-    "subset_superset","parity","modularity","monotonicity","invariant","function_comp",
-    "existential_intro","universal_inst","disjunctive_syllogism","constructive_dilemma",
-    "destructive_dilemma","equivalence_classes","antisymmetry","transitivity","irreflexive",
-    "total_order","partial_order","mapping_total","mapping_injective","mapping_surjective",
-    "mapping_bijective","pigeonhole","inclusion_exclusion","partition","induction_schema",
-    "proof_by_contradiction","case_analysis","circularity_drift","bridge_implication",
-    "quantifier_scope_swap","role_swap","negation_scope","arbitrary_choice","uniqueness",
-    "counting_at_least_k","counting_at_most_k","counting_exact_k","parity_flip","mod_flip",
-    "reachability_k_steps","composition_k_steps","commutativity","associativity","idempotence",
-    "absorption","distributivity"
-  ];
-  const fams = THEMES.map((name,i)=>{
-    const base = seeds.slice(i%seeds.length, (i%seeds.length)+4);
-    const templates = expandTemplates(base);
-    return {
-      id: name, tags:[], maxWords:7,
-      banlist:["about","opposite","exactly"],
-      templates,
-      laws:[],
-      falsifiers:["swap scope","negation misplace","role inversion"]
-    };
-  });
-  return fams.slice(0,62);
-}
-const FAMILY_REGISTRY = { version:"v1", families: makeFamilies() };
-
-/* ===== DSL → TruthModel (compact) ===== */
-function compileDSL(dsl,knobs,rand){
-  // Minimal normalization; real system would parse. Here we enforce surface constraints and attach a simple model.
-  let text = sanitizeSurface(dsl);
-  if(!within7(text)) text = text.split(/\s+/).slice(0,7).join(" ");
-  if(BAN.test(text)) text = text.replace(BAN,"").replace(/\s+/g," ").trim();
-  const truthModel = { kind:"propositional", atoms:[...new Set(text.match(/[A-Z]/g)||[])], ops:(text.match(/\b(implies|iff|xor|and|or|before|subset|inverted|not)\b/gi)||[]).map(x=>x.toLowerCase()) };
-  return { text, truthModel };
-}
-
-/* ===== Distractors with falsity witness ===== */
-function falsify(item){
-  const t=item.text;
-  const variants=[
-    t.replace(/\biff\b/,"xor"),
-    t.replace(/\bimplies\b/,""),
-    t.replace(/\bsome\b/,"all"),
-    t.replace(/\ball\b/,"some"),
-    `not ${t}`.replace(/\s+/g," ").trim()
-  ].map(sanitizeSurface).filter(within7);
-  const uniq=[...new Set(variants)].filter(v=>v && v!==t);
-  return uniq.slice(0,3).map(v=>({text:v,witness:"operator-perturbation"}));
-}
-
-/* ===== Difficulty model ===== */
-function difficultyFor(familyId,knobs){
-  const k=Object.assign({},KNOB_DEFAULTS,knobs||{});
-  const base = (familyId.length%7)/6; // stable pseudo base in [0,1]
-  return mix(base,k.structure,k.operator,k.distractors,k.curriculum)*3-1.5; // map to ~[-1.5,1.5]
-}
-
-/* ===== Match plan by composition, not repetition ===== */
-function makeMatchPlan(n,k,seed,targetRate=.3){
-  const r=pcg32(seed);
-  const events=[];
-  for(let t=1;t<=k*2;t++){
-    const pairs=[];
-    if(r()<targetRate) {
-      const a=1+Math.floor(r()*k);
-      let b=1+Math.floor(r()*k);
-      if(b===a) b = (b%k)+1;
-      pairs.push([a,b]);
-    }
-    events.push({t,pairs});
-  }
-  return {n,k,seed,events};
-}
-
-/* ===== 2PL IRT (EAP) ===== */
-const IRT={
-  theta:0, var:1,
-  info(a=1,b=0,th=null){ const t=th??this.theta; const P=1/(1+Math.exp(-a*(t-b))); return a*a*P*(1-P) },
-  update(resp,a=1,b=0){
-    const t=this.theta, P=1/(1+Math.exp(-a*(t-b)));
-    const dL = a*(resp-P);
-    const H  = -a*a*P*(1-P);
-    this.theta = t - dL/(H||-1e-3);
-    this.var = Math.max(1e-3, 1/Math.max(1e-3, this.info(a,b,this.theta)));
-  }
-};
-
-/* ===== Generator ===== */
-function sample(arr,r){return arr[Math.floor(r()*arr.length)]}
-function generatePremise(family,knobs,seed){
-  const r=pcg32(seed);
-  const tpl = sample(family.templates,r);
-  const {text,truthModel}=compileDSL(tpl,knobs,r);
-  const b = difficultyFor(family.id,knobs);
-  const distractors = falsify({text,truthModel});
-  return { text, truthModel, distractors, b, familyId:family.id };
-}
-
-/* ===== UI wiring (no layout changes) ===== */
-function currentK(){ const el=document.querySelector('[data-k]')||document.getElementById('k'); return el?parseInt(el.value||el.textContent,10)||5:5 }
-function currentN(){ const el=document.querySelector('[data-n]')||document.getElementById('nBack'); return el?parseInt(el.value||el.textContent,10)||2:2 }
-function currentTrials(){ const el=document.querySelector('[data-trials]')||document.getElementById('trials'); return el?parseInt(el.value||el.textContent,10)||20:20 }
-function currentSeed(){ const el=document.querySelector('[data-seed]')||document.getElementById('seed'); return el?parseInt(el.value||el.textContent,10)||12345:12345 }
-
-function speakLines(lines){
-  const ok=('speechSynthesis'in window)&&('SpeechSynthesisUtterance'in window);
-  if(!ok) return;
-  try{ speechSynthesis.cancel(); }catch(e){}
-  const rateEl=document.getElementById('speechRate')||document.querySelector('[data-speech-rate]');
-  const rate=rateEl?parseFloat(rateEl.value)||1:1;
-  const cleaned = lines.map(stripNumberPrefixes);
-  cleaned.forEach(t=>{
-    const u=new SpeechSynthesisUtterance(t);
-    u.rate=rate;
-    speechSynthesis.speak(u);
-  });
-}
-
-function runSession(){
-  const K=currentK(), N=currentN(), T=currentTrials(), seed=currentSeed();
-  const fams=FAMILY_REGISTRY.families;
-  if(fams.length!==62){ console.warn('Family count',fams.length,'(expected 62)'); }
-  let r=pcg32(seed);
-  for(let t=1;t<=T;t++){
-    const items=[];
-    for(let i=0;i<K;i++){
-      const f=fams[(i+t)%fams.length];
-      const item=generatePremise(f,KNOB_DEFAULTS, (seed+ t*991 + i*31337)>>>0);
-      items.push(item);
-    }
-    // Render
-    const list=document.getElementById('premiseDisplay')||document.querySelector('#premise-display');
-    if(list){
-      list.innerHTML='';
-      items.forEach((it,idx)=>{
-        const li=document.createElement('div');
-        li.className='premise-row';
-        li.innerHTML=`<span class="premise-num">${idx+1}.</span> <span class="premise-text">${it.text}</span>`;
-        list.appendChild(li);
-      });
-    }
-    // Speak only premise texts, without numbers
-    const lines = items.map(it=>it.text);
-    speakLines(lines);
-    // Update IRT with mock correctness for demo (replace with real responses)
-    items.forEach(it=> IRT.update(0.6,1,it.b));
-  }
-}
-
-/* ===== Dev self-checks ===== */
-console.group('Imagi-World deepening');
-console.log('Families:', FAMILY_REGISTRY.families.length);
-console.assert(FAMILY_REGISTRY.families.length===62,'Expected 62 families');
-console.assert(FAMILY_REGISTRY.families.every(f=>f.templates.length>=12),'Each family needs ≥12 templates');
-console.groupEnd();
-
-/* ===== Module ready ===== */
 </script>
 
 </body>
